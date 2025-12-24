@@ -28,7 +28,7 @@ export function useDatabaseList<T = any>(
 
   useEffect(() => {
     if (!memoizedRefOrQuery) {
-      setIsLoading(true);
+      setIsLoading(false);
       setData(null);
       setError(null);
       return;

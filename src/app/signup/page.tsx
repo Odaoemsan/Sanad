@@ -86,7 +86,6 @@ export default function SignupPage() {
           registrationDate: new Date().toISOString(),
           balance: 0,
           lastProfitClaim: null,
-          last_spin: null,
         };
         
         if (referrerId) {

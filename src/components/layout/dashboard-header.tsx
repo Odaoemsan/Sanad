@@ -24,14 +24,9 @@ export function DashboardHeader({ pageTitle }: { pageTitle: string }) {
   const database = useDatabase();
 
   const telegramLinkRef = useMemoFirebase(() => database ? ref(database, 'settings/telegramLink') : null, [database]);
-  const { data: telegramLinkData } = useDatabaseObject<{'.value': string}>(telegramLinkRef as any);
+  const { data: telegramLinkData } = useDatabaseObject<string>(telegramLinkRef as any);
 
-  let telegramLink = "https://t.me/sy_aron"; // Default link
-  if (telegramLinkData && typeof telegramLinkData === 'object' && '.value' in telegramLinkData) {
-    telegramLink = telegramLinkData['.value'] as any;
-  } else if (typeof telegramLinkData === 'string') {
-    telegramLink = telegramLinkData;
-  }
+  const telegramLink = typeof telegramLinkData === 'string' ? telegramLinkData : "https://t.me/sy_aron";
 
   const handleLogout = async () => {
     if (!auth) return;

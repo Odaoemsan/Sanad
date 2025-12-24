@@ -9,7 +9,7 @@ import { useDatabase, useUser, useDatabaseObject, useDatabaseList, useMemoFireba
 import { ref, update, push, serverTimestamp, runTransaction } from 'firebase/database';
 import { CheckCircle, Loader, Clock, Zap, TrendingUp } from 'lucide-react';
 import type { InvestmentPlan, UserProfile, Investment } from '@/lib/placeholder-data';
-import { addHours, formatDistanceToNowStrict } from 'date-fns';
+import { addHours, formatDistanceToNowStrict, isBefore } from 'date-fns';
 import { ar } from 'date-fns/locale';
 
 const tradingMessages = [
@@ -58,29 +58,29 @@ export default function DailyProfitPage() {
             return;
         }
 
-        if (userProfile && claimStatus !== 'processing' && claimStatus !== 'success') {
-            const now = Date.now();
-            const lastClaimTimestamp = typeof userProfile.lastProfitClaim === 'object' ? (userProfile.lastProfitClaim as any)._methodName : userProfile.lastProfitClaim || 0;
-            
-            if (typeof lastClaimTimestamp === 'string') {
-                 setClaimStatus('ready');
-                 setCountdown('');
-                 if (timer) clearInterval(timer);
-                 return;
-            }
+        if (claimStatus !== 'processing' && claimStatus !== 'success') {
+            const now = new Date();
+            const lastClaimTimestamp = userProfile?.lastProfitClaim;
 
-            const nextPossibleClaimTime = addHours(new Date(lastClaimTimestamp), 24).getTime();
+            if (typeof lastClaimTimestamp === 'number') {
+                const nextPossibleClaimTime = addHours(new Date(lastClaimTimestamp), 24);
 
-            if (now >= nextPossibleClaimTime) {
-                setClaimStatus('ready');
-                setCountdown('');
-                if (timer) clearInterval(timer);
+                if (isBefore(now, nextPossibleClaimTime)) {
+                    setClaimStatus('claimed');
+                    // Update countdown immediately and then set interval
+                    const updateCountdown = () => {
+                         const remaining = formatDistanceToNowStrict(nextPossibleClaimTime, { locale: ar, addSuffix: true });
+                         setCountdown(remaining);
+                    };
+                    updateCountdown();
+                    timer = setInterval(updateCountdown, 1000);
+                } else {
+                    setClaimStatus('ready');
+                    if (timer) clearInterval(timer);
+                }
             } else {
-                setClaimStatus('claimed');
-                timer = setInterval(() => {
-                    const remaining = formatDistanceToNowStrict(nextPossibleClaimTime, { locale: ar, addSuffix: true });
-                    setCountdown(remaining);
-                }, 1000);
+                 setClaimStatus('ready'); // Can claim if it's null or not a number
+                 if (timer) clearInterval(timer);
             }
         }
         
@@ -88,9 +88,20 @@ export default function DailyProfitPage() {
             if (timer) clearInterval(timer);
         };
     }, [userProfile, isProfileLoading, claimStatus]);
-
+    
+    const hasActiveInvestments = investments?.some(inv => inv.status === 'active');
+    
     const handleClaimProfit = async () => {
-        if (!database || !user || !userProfile || !userProfileRef || claimStatus !== 'ready') return;
+        if (!database || !user || !userProfile || !userProfileRef || claimStatus !== 'ready' || !hasActiveInvestments) {
+            if (!hasActiveInvestments) {
+                 toast({
+                    title: "لا توجد استثمارات نشطة",
+                    description: "يجب أن يكون لديك استثمار نشط على الأقل لجمع الأرباح.",
+                    variant: 'destructive',
+                });
+            }
+            return;
+        }
 
         setClaimStatus('processing');
 
@@ -106,41 +117,33 @@ export default function DailyProfitPage() {
 
         if (totalDailyProfit <= 0) {
             toast({
-                title: "لا توجد استثمارات نشطة",
-                description: "يجب أن يكون لديك استثمار نشط على الأقل لجمع الأرباح.",
+                title: "لا يوجد ربح لجمعه",
+                description: "أرباحك اليومية هي 0.00$.",
                 variant: 'destructive',
             });
             setClaimStatus('ready');
             return;
         }
         
-        // Simulate a 20-second trading process
         tradingMessages.forEach(msg => {
             setTimeout(() => setProcessingMessage(msg.text), msg.delay);
         });
 
         setTimeout(async () => {
             try {
-                
                 await runTransaction(userProfileRef, (currentData: UserProfile | null) => {
                     if (currentData) {
-                        const now = Date.now();
-                        const lastClaimTimestamp = currentData.lastProfitClaim || 0;
-                        
-                        // Handle serverTimestamp object
-                         const lastClaimTime = typeof lastClaimTimestamp === 'object' 
-                           ? (lastClaimTimestamp as any)._methodName ? 0 : new Date(lastClaimTimestamp).getTime() // Placeholder, this logic might need adjustment based on actual object structure
-                           : new Date(lastClaimTimestamp).getTime();
-
-
-                        const nextPossibleClaimTime = addHours(new Date(lastClaimTime), 24).getTime();
-                        
-                        if (now < nextPossibleClaimTime) {
-                           console.log("Profit already claimed within 24 hours.");
-                           // Abort transaction by returning undefined
-                           return;
+                        const now = new Date();
+                        const lastClaim = currentData.lastProfitClaim;
+                        if (typeof lastClaim === 'number') {
+                            const nextClaimTime = addHours(new Date(lastClaim), 24);
+                            if (isBefore(now, nextClaimTime)) {
+                                console.log("Profit already claimed within 24 hours.");
+                                // Abort transaction by returning undefined
+                                return;
+                            }
                         }
-
+                        
                         currentData.balance = (currentData.balance || 0) + totalDailyProfit;
                         currentData.lastProfitClaim = serverTimestamp() as any;
                         return currentData;
@@ -148,7 +151,6 @@ export default function DailyProfitPage() {
                     return currentData; // abort if no data
                 });
 
-                // Create transaction record outside of the transaction block
                 const transactionRef = push(ref(database, `transactions`));
                 await set(transactionRef, {
                     id: transactionRef.key,
@@ -175,10 +177,10 @@ export default function DailyProfitPage() {
                  }
                 setClaimStatus('ready');
             }
-        }, 20000); // Total process time is 20 seconds
+        }, 20000);
     };
 
-    const hasActiveInvestments = investments && investments.some(inv => inv.status === 'active');
+    
     const isLoading = !user || !database || areInvestmentsLoading || arePlansLoading || isProfileLoading;
 
     const renderContent = () => {

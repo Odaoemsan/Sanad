@@ -63,30 +63,34 @@
           "type": "string",
           "description": "A detailed description of the investment plan."
         },
-        "minimumInvestment": {
+        "minDeposit": {
           "type": "number",
           "description": "The minimum amount required to invest in this plan."
         },
-        "maximumInvestment": {
+        "maxDeposit": {
           "type": "number",
           "description": "The maximum amount allowed to invest in this plan."
         },
-        "returnPercentage": {
+        "dailyReturn": {
           "type": "number",
-          "description": "The percentage of return offered by this plan."
+          "description": "The percentage of daily return offered by this plan."
         },
-        "durationDays": {
+        "duration": {
           "type": "number",
           "description": "The duration of the investment plan in days."
+        },
+        "isPopular": {
+            "type": "boolean",
+            "description": "Whether the plan is marked as popular."
         }
       },
       "required": [
         "id",
         "name",
         "description",
-        "minimumInvestment",
-        "returnPercentage",
-        "durationDays"
+        "minDeposit",
+        "dailyReturn",
+        "duration"
       ]
     },
     "Investment": {
@@ -297,7 +301,7 @@
           "schema": {
             "$ref": "#/backend/entities/Transaction"
           },
-          "description": "Stores user's transaction history, nested under their profile for ownership. The 'userProfileId' field inside the Transaction document must match the 'userId' path parameter.",
+          "description": "Stores transaction history for all users in a single collection, allowing for easier admin queries. Security rules ensure users can only access their own transactions.",
           "params": [
             {
               "name": "transactionId",
@@ -327,6 +331,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging, particularly focusing on Authorization Independence. User profiles are stored in a top-level `users` collection where the document ID is the user's Auth UID. This provides a clear, 1-to-1 mapping. Investment plans and announcements are stored globally, while user-specific investments, transactions, and referrals are nested under the user's document. This structure allows for clear and enforceable security rules. Specifically, Authorization Independence is achieved by avoiding hierarchical authorization dependencies; user-related data (investments, transactions, referrals) are stored under the `/users/{userId}` path. This allows for direct access to user data without needing to `get()` data from parent documents. QAPs (Rules are not Filters) are supported by structuring data to enable secure list operations. Public data is segregated from user data, ensuring list operations on public collections do not expose user-sensitive information."
+    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging. User profiles are stored in a top-level `users` collection where the document ID is the user's Auth UID. Investment plans and announcements are stored globally as they are public data. User-specific data like investments and referrals are nested under the user's document to enforce ownership-based security rules easily. Transactions are in a root collection to allow for efficient admin queries (e.g., list all pending deposits), while still being secured by rules that check the `userProfileId` field inside each document, ensuring users can only read/write their own transactions."
   }
 }
