@@ -22,7 +22,8 @@ import {
   ArrowDownRight,
   Plus,
   Send,
-  UserPlus
+  UserPlus,
+  Shield
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -36,6 +37,14 @@ import {
   Line,
   ResponsiveContainer,
 } from "recharts"
+import { AdminDepositsCard } from "./admin/_components/admin-deposits-card";
+import { AdminWithdrawalsCard } from "./admin/_components/admin-withdrawals-card";
+import { AdminPlansCard } from "./admin/_components/admin-plans-card";
+import { AdminAnnouncementsCard } from "./admin/_components/admin-announcements-card";
+import { AdminSettingsCard } from "./admin/_components/admin-settings-card";
+import { AdminUsersStatsCard } from "./admin/_components/admin-users-stats-card";
+
+const ADMIN_UID = "eQwg5buDT7b0dtU391R8LZXBtjs1";
 
 
 const MiniChart = ({ data }: { data: any[] }) => (
@@ -63,7 +72,7 @@ const MiniChart = ({ data }: { data: any[] }) => (
 
 
 export default function DashboardPage() {
-  const { user } = useUser();
+  const { user, isUserLoading: isAuthLoading } = useUser();
   const database = useDatabase();
   const { toast } = useToast();
 
@@ -86,7 +95,7 @@ export default function DashboardPage() {
   const { data: transactionsData, isLoading: areTransactionsLoading } = useDatabaseList<Transaction>(transactionsRef);
   const { data: investmentsData, isLoading: areInvestmentsLoading } = useDatabaseList<Investment>(investmentsRef);
 
-  const isLoading = !user || !database || isProfileLoading || areTransactionsLoading || areInvestmentsLoading;
+  const isLoading = isAuthLoading || isProfileLoading || areTransactionsLoading || areInvestmentsLoading;
   
   const totalInvested = investmentsData?.reduce((sum, investment) => sum + (investment.amount || 0), 0) || 0;
   const totalProfit = transactionsData?.filter(t => t.type === 'Profit' && t.status === 'Completed').reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
@@ -119,123 +128,148 @@ export default function DashboardPage() {
 
    if (isLoading) {
     return (
-      <>
-        <main className="flex flex-1 flex-col items-center justify-center gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
-            <Activity className="h-16 w-16 text-primary animate-pulse" />
-            <p className="text-muted-foreground">جاري تحميل بيانات لوحة القيادة...</p>
-        </main>
-      </>
+      <main className="flex flex-1 flex-col items-center justify-center gap-4 p-4 sm:px-6">
+          <Activity className="h-16 w-16 text-primary animate-pulse" />
+          <p className="text-muted-foreground">جاري تحميل بيانات لوحة القيادة...</p>
+      </main>
     )
   }
 
-  return (
-    <>
-      <main className="flex flex-1 flex-col gap-6 p-4 sm:px-6">
-        
-        {/* Quick Actions Grid */}
-        <div className="w-full">
-            <h2 className="text-lg font-semibold mb-3">إجراءات سريعة</h2>
-             <div className="grid grid-cols-4 gap-3">
-                <Button asChild variant="outline" className="flex-col h-20 gap-1 text-sm bg-background/80"><Link href="/dashboard/wallet?tab=deposit"><Plus className="h-5 w-5"/> <span>إيداع</span></Link></Button>
-                <Button asChild variant="outline" className="flex-col h-20 gap-1 text-sm bg-background/80"><Link href="/dashboard/wallet?tab=withdraw"><Send className="h-5 w-5"/> <span>سحب</span></Link></Button>
-                <Button asChild variant="outline" className="flex-col h-20 gap-1 text-sm bg-background/80"><Link href="/dashboard/referrals"><UserPlus className="h-5 w-5"/> <span>دعوة</span></Link></Button>
-                <Button asChild variant="outline" className="flex-col h-20 gap-1 text-sm bg-background/80"><Link href="/#plans"><Briefcase className="h-5 w-5"/> <span>استثمار</span></Link></Button>
-            </div>
-        </div>
-
-        {/* Total Balance Card */}
-        <Card className="card-glass overflow-hidden bg-gradient-to-br from-primary/80 to-blue-700 text-primary-foreground">
-            <CardHeader>
-                <CardTitle className="text-sm font-medium text-white/80">إجمالي الرصيد</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="text-4xl font-bold">
-                    ${userProfile?.balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
-                </div>
-            </CardContent>
-            <CardFooter>
-                 <Button variant="secondary" className="w-full bg-white/20 hover:bg-white/30 text-white" asChild>
-                    <Link href="/dashboard/wallet">
-                        إيداع
-                    </Link>
-                </Button>
-            </CardFooter>
-        </Card>
-
-        {/* Analytics Grid */}
-        <div className="grid grid-cols-2 gap-4">
-            <Card className="card-glass relative overflow-hidden">
-                <CardHeader className="pb-2">
-                    <CardDescription>إجمالي الربح</CardDescription>
-                    <CardTitle className="text-2xl">${totalProfit.toFixed(2)}</CardTitle>
-                </CardHeader>
-                <CardContent className="h-20">
-                     <MiniChart data={mockChartData} />
-                </CardContent>
-            </Card>
-             <Card className="card-glass relative overflow-hidden">
-                <CardHeader className="pb-2">
-                    <CardDescription>إجمالي المستثمر</CardDescription>
-                    <CardTitle className="text-2xl">${totalInvested.toFixed(2)}</CardTitle>
-                </CardHeader>
-                <CardContent className="h-20">
-                    <MiniChart data={mockChartData} />
-                </CardContent>
-            </Card>
-        </div>
-
-        {/* Referral Card */}
-        <Card className="card-glass">
-            <CardHeader>
-                <CardTitle>مكافآت الإحالة</CardTitle>
-                <CardDescription>
-                   اربح ${referralEarnings.toFixed(2)} من دعوة الأصدقاء.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                 <Button className="w-full" asChild>
-                    <Link href="/dashboard/referrals">دعوة</Link>
-                 </Button>
-            </CardContent>
-        </Card>
-
-        {/* Recent Transactions */}
-        <div className="space-y-4">
-            <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">أحدث المعاملات</h2>
-                <Link href="/dashboard/transactions" className="text-sm font-medium text-primary">
-                    عرض الكل
-                </Link>
-            </div>
-            <div className="space-y-3">
-                {recentTransactions.length > 0 ? recentTransactions.map((transaction) => (
-                    <Card key={transaction.id} className="card-glass">
-                        <CardContent className="p-3 flex items-center gap-4">
-                            <div className="p-2 bg-muted/50 rounded-full">
-                                <TransactionIcon type={transaction.type} />
-                            </div>
-                            <div className="flex-1">
-                                <p className="font-semibold">{transaction.type}</p>
-                                <p className="text-xs text-muted-foreground">{format(new Date(transaction.transactionDate), 'MMM dd, yyyy')}</p>
-                            </div>
-                            <div className={cn(
-                                'font-bold text-right',
-                                transaction.type === 'Deposit' || transaction.type === 'Profit' || transaction.type === 'Referral Bonus' ? 'text-green-500' : 'text-foreground'
-                            )}>
-                                {transaction.type === 'Deposit' || transaction.type === 'Profit' || transaction.type === 'Referral Bonus' ? '+' : '-'}${transaction.amount.toFixed(2)}
-                            </div>
-                        </CardContent>
-                    </Card>
-                )) : (
-                     <Card className="card-glass">
-                         <CardContent className="p-6 text-center text-muted-foreground">
-                            لا توجد معاملات بعد.
-                        </CardContent>
-                     </Card>
-                )}
-            </div>
-        </div>
+  // If user is Admin, show Admin Dashboard
+  if (user?.uid === ADMIN_UID) {
+    return (
+      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+          <div className="flex items-center gap-4">
+              <Shield className="h-8 w-8 text-primary" />
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">لوحة تحكم الأدمن</h1>
+          </div>
+          
+          <div className="grid gap-6 lg:grid-cols-3">
+              {/* Main column for actions */}
+              <div className="lg:col-span-2 grid auto-rows-max gap-6">
+                  <AdminDepositsCard />
+                  <AdminWithdrawalsCard />
+              </div>
+              
+              {/* Sidebar for other settings */}
+              <div className="lg:col-span-1 grid auto-rows-max gap-6">
+                  <AdminUsersStatsCard />
+                  <AdminPlansCard />
+                  <AdminAnnouncementsCard />
+                  <AdminSettingsCard />
+              </div>
+          </div>
       </main>
-    </>
+    );
+  }
+
+  // Otherwise, show regular user dashboard
+  return (
+    <main className="flex flex-1 flex-col gap-6 p-4 sm:px-6">
+      
+      {/* Quick Actions Grid */}
+      <div className="w-full">
+          <h2 className="text-lg font-semibold mb-3">إجراءات سريعة</h2>
+            <div className="grid grid-cols-4 gap-3">
+              <Button asChild variant="outline" className="flex-col h-20 gap-1 text-sm bg-background/80"><Link href="/dashboard/wallet?tab=deposit"><Plus className="h-5 w-5"/> <span>إيداع</span></Link></Button>
+              <Button asChild variant="outline" className="flex-col h-20 gap-1 text-sm bg-background/80"><Link href="/dashboard/wallet?tab=withdraw"><Send className="h-5 w-5"/> <span>سحب</span></Link></Button>
+              <Button asChild variant="outline" className="flex-col h-20 gap-1 text-sm bg-background/80"><Link href="/dashboard/referrals"><UserPlus className="h-5 w-5"/> <span>دعوة</span></Link></Button>
+              <Button asChild variant="outline" className="flex-col h-20 gap-1 text-sm bg-background/80"><Link href="/#plans"><Briefcase className="h-5 w-5"/> <span>استثمار</span></Link></Button>
+          </div>
+      </div>
+
+      {/* Total Balance Card */}
+      <Card className="card-glass overflow-hidden bg-gradient-to-br from-primary/80 to-blue-700 text-primary-foreground">
+          <CardHeader>
+              <CardTitle className="text-sm font-medium text-white/80">إجمالي الرصيد</CardTitle>
+          </CardHeader>
+          <CardContent>
+              <div className="text-4xl font-bold">
+                  ${userProfile?.balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+              </div>
+          </CardContent>
+          <CardFooter>
+                <Button variant="secondary" className="w-full bg-white/20 hover:bg-white/30 text-white" asChild>
+                  <Link href="/dashboard/wallet?tab=deposit">
+                      إيداع
+                  </Link>
+              </Button>
+          </CardFooter>
+      </Card>
+
+      {/* Analytics Grid */}
+      <div className="grid grid-cols-2 gap-4">
+          <Card className="card-glass relative overflow-hidden">
+              <CardHeader className="pb-2">
+                  <CardDescription>إجمالي الربح</CardDescription>
+                  <CardTitle className="text-2xl">${totalProfit.toFixed(2)}</CardTitle>
+              </CardHeader>
+              <CardContent className="h-20">
+                    <MiniChart data={mockChartData} />
+              </CardContent>
+          </Card>
+            <Card className="card-glass relative overflow-hidden">
+              <CardHeader className="pb-2">
+                  <CardDescription>إجمالي المستثمر</CardDescription>
+                  <CardTitle className="text-2xl">${totalInvested.toFixed(2)}</CardTitle>
+              </CardHeader>
+              <CardContent className="h-20">
+                  <MiniChart data={mockChartData} />
+              </CardContent>
+          </Card>
+      </div>
+
+      {/* Referral Card */}
+      <Card className="card-glass">
+          <CardHeader>
+              <CardTitle>مكافآت الإحالة</CardTitle>
+              <CardDescription>
+                  اربح ${referralEarnings.toFixed(2)} من دعوة الأصدقاء.
+              </CardDescription>
+          </CardHeader>
+          <CardContent>
+                <Button className="w-full" asChild>
+                  <Link href="/dashboard/referrals">دعوة</Link>
+                </Button>
+          </CardContent>
+      </Card>
+
+      {/* Recent Transactions */}
+      <div className="space-y-4">
+          <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">أحدث المعاملات</h2>
+              <Link href="/dashboard/transactions" className="text-sm font-medium text-primary">
+                  عرض الكل
+              </Link>
+          </div>
+          <div className="space-y-3">
+              {recentTransactions.length > 0 ? recentTransactions.map((transaction) => (
+                  <Card key={transaction.id} className="card-glass">
+                      <CardContent className="p-3 flex items-center gap-4">
+                          <div className="p-2 bg-muted/50 rounded-full">
+                              <TransactionIcon type={transaction.type} />
+                          </div>
+                          <div className="flex-1">
+                              <p className="font-semibold">{transaction.type}</p>
+                              <p className="text-xs text-muted-foreground">{format(new Date(transaction.transactionDate), 'MMM dd, yyyy')}</p>
+                          </div>
+                          <div className={cn(
+                              'font-bold text-right',
+                              transaction.type === 'Deposit' || transaction.type === 'Profit' || transaction.type === 'Referral Bonus' ? 'text-green-500' : 'text-foreground'
+                          )}>
+                              {transaction.type === 'Deposit' || transaction.type === 'Profit' || transaction.type === 'Referral Bonus' ? '+' : '-'}${transaction.amount.toFixed(2)}
+                          </div>
+                      </CardContent>
+                  </Card>
+              )) : (
+                    <Card className="card-glass">
+                        <CardContent className="p-6 text-center text-muted-foreground">
+                          لا توجد معاملات بعد.
+                      </CardContent>
+                    </Card>
+              )}
+          </div>
+      </div>
+    </main>
   );
 }
