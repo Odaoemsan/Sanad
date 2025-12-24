@@ -8,6 +8,7 @@ import { BottomNavBar } from '@/components/layout/bottom-nav-bar';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { LocationBlocking } from '@/services/location-service.tsx';
 
 
 export const metadata: Metadata = {
@@ -29,17 +30,19 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <FirebaseClientProvider>
-          <SidebarProvider>
-            <div className="flex flex-col min-h-screen">
-              <Header />
-              <main className="flex-grow pb-16">{children}</main>
-              <Footer />
-            </div>
-            <Toaster />
-            <BottomNavBar />
-          </SidebarProvider>
-        </FirebaseClientProvider>
+        <LocationBlocking>
+          <FirebaseClientProvider>
+            <SidebarProvider>
+              <div className="flex flex-col min-h-screen">
+                <Header />
+                <main className="flex-grow pb-16">{children}</main>
+                <Footer />
+              </div>
+              <Toaster />
+              <BottomNavBar />
+            </SidebarProvider>
+          </FirebaseClientProvider>
+        </LocationBlocking>
       </body>
     </html>
   );
