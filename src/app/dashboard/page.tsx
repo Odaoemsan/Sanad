@@ -124,9 +124,9 @@ export default function DashboardPage() {
 
   const isLoading = !user || !database || isProfileLoading || areTransactionsLoading || areInvestmentsLoading;
   
-  const totalInvested = investmentsData?.reduce((sum, investment) => sum + investment.amount, 0) || 0;
-  const totalProfit = transactionsData?.filter(t => t.type === 'Profit' && t.status === 'Completed').reduce((sum, t) => sum + t.amount, 0) || 0;
-  const referralEarnings = transactionsData?.filter(t => t.type === 'Referral Bonus' && t.status === 'Completed').reduce((sum, t) => sum + t.amount, 0) || 0;
+  const totalInvested = investmentsData?.reduce((sum, investment) => sum + (investment.amount || 0), 0) || 0;
+  const totalProfit = transactionsData?.filter(t => t.type === 'Profit' && t.status === 'Completed').reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
+  const referralEarnings = transactionsData?.filter(t => t.type === 'Referral Bonus' && t.status === 'Completed').reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
 
   const kpiData = [
     {
@@ -237,9 +237,9 @@ export default function DashboardPage() {
                                     : 'text-red-600'
                                 )}
                                 >
-                                {transaction.type === 'Deposit' || transaction.type === 'Profit' || transaction.type === 'Referral Bonus' ? '+' : '-'}${transaction.amount.toFixed(2)}
+                                {transaction.type === 'Deposit' || transaction.type === 'Profit' || transaction.type === 'Referral Bonus' ? '+' : '-'}${(transaction.amount || 0).toFixed(2)}
                                 </TableCell>
-                                <TableCell>{format(new Date(transaction.transactionDate), 'yyyy-MM-dd')}</TableCell>
+                                <TableCell>{transaction.transactionDate ? format(new Date(transaction.transactionDate), 'yyyy-MM-dd') : 'N/A'}</TableCell>
                             </TableRow>
                             )) : (
                             <TableRow>

@@ -153,7 +153,7 @@ export default function SettingsPage() {
                                         name="currentPassword"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>كلمة المرor الحالية</FormLabel>
+                                                <FormLabel>كلمة المرور الحالية</FormLabel>
                                                 <FormControl>
                                                     <Input type="password" {...field} disabled={isPasswordSaving}/>
                                                 </FormControl>

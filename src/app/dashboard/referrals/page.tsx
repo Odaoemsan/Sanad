@@ -36,7 +36,7 @@ export default function ReferralsPage() {
     };
 
     const totalReferrals = referralsData?.length || 0;
-    const totalCommission = referralsData?.reduce((sum, ref) => sum + (ref.bonusAmount || 0), 0) || 0;
+    const totalCommission = referralsData ? referralsData.reduce((sum, ref) => sum + (ref.bonusAmount || 0), 0) : 0;
     
     const referralStats = [
         { title: "إجمالي الإحالات", value: totalReferrals, icon: Users },
@@ -127,8 +127,8 @@ export default function ReferralsPage() {
                                     {referralsData && referralsData.length > 0 ? referralsData.map(ref => (
                                         <TableRow key={ref.id}>
                                             <TableCell className="font-medium">{ref.referredUsername || 'N/A'}</TableCell>
-                                            <TableCell>{format(new Date(ref.referralDate), 'yyyy-MM-dd')}</TableCell>
-                                            <TableCell className="text-left text-green-600 font-medium">+${ref.bonusAmount.toFixed(2)}</TableCell>
+                                            <TableCell>{ref.referralDate ? format(new Date(ref.referralDate), 'yyyy-MM-dd') : 'N/A'}</TableCell>
+                                            <TableCell className="text-left text-green-600 font-medium">+${(ref.bonusAmount || 0).toFixed(2)}</TableCell>
                                         </TableRow>
                                     )) : (
                                         <TableRow>
