@@ -24,6 +24,7 @@ import { useUser, useDatabase, useDatabaseList, useMemoFirebase } from "@/fireba
 import { ref, query, orderByChild, equalTo } from 'firebase/database';
 import type { Transaction } from "@/lib/placeholder-data";
 import { format } from "date-fns";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function TransactionsPage() {
   const { user } = useUser();
@@ -89,71 +90,73 @@ export default function TransactionsPage() {
                     <Activity className="h-10 w-10 animate-pulse text-primary" />
                 </div>
             ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>النوع</TableHead>
-                  <TableHead>الحالة</TableHead>
-                  <TableHead className="text-left">المبلغ</TableHead>
-                  <TableHead>التاريخ</TableHead>
-                  <TableHead>التفاصيل</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedTransactions.length > 0 ? sortedTransactions.map((transaction) => (
-                  <TableRow key={transaction.id}>
-                    <TableCell>
-                      <div className="font-medium">{transaction.type}</div>
-                    </TableCell>
-                    <TableCell>
-                       <Badge
+            <ScrollArea className="h-[calc(100vh-20rem)]">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>النوع</TableHead>
+                    <TableHead>الحالة</TableHead>
+                    <TableHead className="text-left">المبلغ</TableHead>
+                    <TableHead>التاريخ</TableHead>
+                    <TableHead>التفاصيل</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sortedTransactions.length > 0 ? sortedTransactions.map((transaction) => (
+                    <TableRow key={transaction.id}>
+                      <TableCell>
+                        <div className="font-medium">{transaction.type}</div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          className={cn(
+                            "capitalize",
+                            transaction.status === 'Completed' && 'bg-green-500/20 text-green-700 border-green-500/20',
+                            transaction.status === 'Pending' && 'bg-amber-500/20 text-amber-700 border-amber-500/20',
+                            transaction.status === 'Failed' && 'bg-red-500/20 text-red-700 border-red-500/20'
+                          )}
+                        >
+                          {transaction.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell
                         className={cn(
-                          "capitalize",
-                           transaction.status === 'Completed' && 'bg-green-500/20 text-green-700 border-green-500/20',
-                           transaction.status === 'Pending' && 'bg-amber-500/20 text-amber-700 border-amber-500/20',
-                           transaction.status === 'Failed' && 'bg-red-500/20 text-red-700 border-red-500/20'
+                          "text-left font-medium",
+                          transaction.type === "Deposit" ||
+                            transaction.type === "Profit" ||
+                            transaction.type === "Referral Bonus"
+                            ? "text-green-600"
+                            : "text-red-600"
                         )}
                       >
-                        {transaction.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell
-                      className={cn(
-                        "text-left font-medium",
-                        transaction.type === "Deposit" ||
-                          transaction.type === "Profit" ||
-                          transaction.type === "Referral Bonus"
-                          ? "text-green-600"
-                          : "text-red-600"
-                      )}
-                    >
-                      {transaction.type === "Deposit" ||
-                      transaction.type === "Profit" ||
-                      transaction.type === "Referral Bonus"
-                        ? "+"
-                        : "-"}
-                      ${transaction.amount.toFixed(2)}
-                    </TableCell>
-                    <TableCell>{format(new Date(transaction.transactionDate), 'yyyy-MM-dd')}</TableCell>
-                     <TableCell className="font-mono text-xs text-muted-foreground">
-                       {transaction.type === 'Deposit' && transaction.depositProof ? (
-                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => window.open(transaction.depositProof, '_blank')}>
-                            <Eye className="h-4 w-4 text-blue-400" />
-                         </Button>
-                       ) : (
-                         transaction.id.substring(0,10) + '...'
-                       )}
-                    </TableCell>
-                  </TableRow>
-                )) : (
-                    <TableRow>
-                        <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
-                            ليس لديك أي معاملات حتى الآن.
-                        </TableCell>
+                        {transaction.type === "Deposit" ||
+                        transaction.type === "Profit" ||
+                        transaction.type === "Referral Bonus"
+                          ? "+"
+                          : "-"}
+                        ${transaction.amount.toFixed(2)}
+                      </TableCell>
+                      <TableCell>{format(new Date(transaction.transactionDate), 'yyyy-MM-dd')}</TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        {transaction.type === 'Deposit' && transaction.depositProof ? (
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => window.open(transaction.depositProof, '_blank')}>
+                              <Eye className="h-4 w-4 text-blue-400" />
+                          </Button>
+                        ) : (
+                          transaction.id.substring(0,10) + '...'
+                        )}
+                      </TableCell>
                     </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                  )) : (
+                      <TableRow>
+                          <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
+                              ليس لديك أي معاملات حتى الآن.
+                          </TableCell>
+                      </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </ScrollArea>
             )}
           </CardContent>
         </Card>

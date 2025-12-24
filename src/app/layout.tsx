@@ -11,6 +11,7 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 export const metadata: Metadata = {
   title: 'SNAD - منصة استثمارية عالية العائد',
   description: 'استكشف خطط الاستثمار عالية العائد، وتتبع عوائدك، وقم بتنمية محفظتك مع SNAD.',
+  viewport: 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover',
 };
 
 export default function RootLayout({
