@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useUser } from '@/firebase';
 import { Home, Briefcase, Wallet, Zap } from 'lucide-react';
-
+import { useSidebar } from '@/components/ui/sidebar';
 
 const navItems = [
   { href: '/dashboard', label: 'الرئيسية', icon: Home },
@@ -19,8 +19,13 @@ export function BottomNavBar() {
   const pathname = usePathname();
   const isMobile = useIsMobile();
   const { user, isUserLoading } = useUser();
+  const { setOpenMobile } = useSidebar();
 
   const isAuthPage = pathname === '/login' || pathname === '/signup';
+
+  const handleLinkClick = () => {
+    setOpenMobile(false);
+  }
 
   if (!isMobile || isAuthPage) {
     return null;
@@ -43,7 +48,7 @@ export function BottomNavBar() {
                             <Link key={item.label} href={item.href} className={cn(
                                 "inline-flex flex-col items-center justify-center px-5 hover:bg-gray-50 dark:hover:bg-gray-800 group",
                                 isActive ? "text-primary" : "text-muted-foreground"
-                            )}>
+                            )} onClick={handleLinkClick}>
                                 <item.icon className="w-5 h-5 mb-1" />
                                 <span className="text-xs">{item.label}</span>
                             </Link>
@@ -71,7 +76,7 @@ export function BottomNavBar() {
                  <Link key={item.label} href={item.href} className={cn(
                     "inline-flex flex-col items-center justify-center px-5 hover:bg-gray-50 dark:hover:bg-gray-800 group",
                      isActive ? "text-primary" : "text-muted-foreground"
-                 )}>
+                 )} onClick={handleLinkClick}>
                     <item.icon className="w-5 h-5 mb-1" />
                     <span className="text-xs">{item.label}</span>
                 </Link>

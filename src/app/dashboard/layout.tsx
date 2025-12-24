@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  SidebarProvider,
   Sidebar,
   SidebarHeader,
   SidebarContent,
@@ -53,32 +52,30 @@ export default function DashboardLayout({
   }
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen">
-        <Sidebar>
-          <SidebarHeader>
-             <DashboardNavHeader />
-          </SidebarHeader>
-          <SidebarContent>
-            <DashboardNav />
-          </SidebarContent>
-          <SidebarFooter>
-            <Button variant="ghost" className="w-full justify-start gap-2" onClick={handleLogout}>
-              <LogOut size={16} />
-              <span className="duration-200 group-data-[collapsible=icon]:hidden">
-                تسجيل الخروج
-              </span>
-            </Button>
-          </SidebarFooter>
-        </Sidebar>
-        <div className="flex-1 flex flex-col">
-           <div className={cn("flex-grow", isMobile ? "pb-16" : "")}>
-            {!pathname.startsWith('/dashboard/admin') && <AnnouncementBanner />}
-            {children}
-          </div>
-          {isMobile && <BottomNavBar />}
+    <div className="flex min-h-screen">
+      <Sidebar>
+        <SidebarHeader>
+            <DashboardNavHeader />
+        </SidebarHeader>
+        <SidebarContent>
+          <DashboardNav />
+        </SidebarContent>
+        <SidebarFooter>
+          <Button variant="ghost" className="w-full justify-start gap-2" onClick={handleLogout}>
+            <LogOut size={16} />
+            <span className="duration-200 group-data-[collapsible=icon]:hidden">
+              تسجيل الخروج
+            </span>
+          </Button>
+        </SidebarFooter>
+      </Sidebar>
+      <div className="flex-1 flex flex-col">
+          <div className={cn("flex-grow", isMobile ? "pb-16" : "")}>
+          {!pathname.startsWith('/dashboard/admin') && <AnnouncementBanner />}
+          {children}
         </div>
+        {isMobile && <BottomNavBar />}
       </div>
-    </SidebarProvider>
+    </div>
   );
 }

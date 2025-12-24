@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import {
   LayoutDashboard,
@@ -15,12 +16,10 @@ import {
   Wallet,
   Settings,
   MountainIcon,
-  Bot,
   Shield,
   Zap,
 } from 'lucide-react';
-import { useAuth, useUser } from '@/firebase';
-import { signOut } from 'firebase/auth';
+import { useUser } from '@/firebase';
 
 const navItems = [
   { href: '/dashboard', label: 'لوحة القيادة', icon: LayoutDashboard },
@@ -34,15 +33,18 @@ const navItems = [
 
 const adminNavItems = [
   { href: '/dashboard/admin', label: 'لوحة تحكم الأدمن', icon: Shield },
-]
+];
 
-// NOTE: This is a simplified way to check for admin. In a real-world scenario,
-// you would want to use custom claims or a more secure method.
 const ADMIN_UID = "eQwg5buDT7b0dtU391R8LZXBtjs1";
 
 export function DashboardNav() {
   const pathname = usePathname();
   const { user } = useUser();
+  const { setOpenMobile } = useSidebar();
+
+  const handleLinkClick = () => {
+    setOpenMobile(false);
+  };
   
   const itemsToShow = user?.uid === ADMIN_UID ? [...navItems, ...adminNavItems] : navItems;
 
@@ -50,7 +52,7 @@ export function DashboardNav() {
     <SidebarMenu>
       {itemsToShow.map((item) => (
         <SidebarMenuItem key={item.href}>
-          <Link href={item.href}>
+          <Link href={item.href} onClick={handleLinkClick}>
             <SidebarMenuButton
               isActive={pathname === item.href || (pathname.startsWith(item.href) && item.href !== '/dashboard')}
               tooltip={{ children: item.label, side: 'right' }}

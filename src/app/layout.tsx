@@ -5,6 +5,7 @@ import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { FirebaseClientProvider } from '@/firebase';
 import { BottomNavBar } from '@/components/layout/bottom-nav-bar';
+import { SidebarProvider } from '@/components/ui/sidebar';
 
 
 export const metadata: Metadata = {
@@ -26,13 +27,15 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <FirebaseClientProvider>
-          <div className="flex flex-col min-h-screen">
-            <Header />
-            <main className="flex-grow">{children}</main>
-            <Footer />
-          </div>
-          <Toaster />
-          <BottomNavBar />
+          <SidebarProvider>
+            <div className="flex flex-col min-h-screen">
+              <Header />
+              <main className="flex-grow">{children}</main>
+              <Footer />
+            </div>
+            <Toaster />
+            <BottomNavBar />
+          </SidebarProvider>
         </FirebaseClientProvider>
       </body>
     </html>
