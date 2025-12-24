@@ -52,7 +52,7 @@ function ReferralCard() {
     const referralLink = user ? `${window.location.origin}/signup?ref=${user.uid}` : "";
     
     const totalReferrals = referralsData?.length || 0;
-    const totalCommission = referralsData?.reduce((sum, ref) => sum + (ref.bonusAmount || 0), 0) || 0;
+    const totalCommission = referralsData ? referralsData.reduce((sum, ref) => sum + (ref.bonusAmount || 0), 0) : 0;
 
     const copyToClipboard = () => {
         if (!referralLink) return;

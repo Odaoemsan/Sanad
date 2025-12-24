@@ -82,7 +82,9 @@ export function AdminWithdrawalsCard() {
   
   const pageIsLoading = withdrawalsLoading || usersLoading || !database;
 
-  const withdrawalsToReview = pendingTransactions?.filter(tx => tx.type === 'Withdrawal') || [];
+  const withdrawalsToReview = useMemo(() => {
+    return pendingTransactions ? pendingTransactions.filter(tx => tx.type === 'Withdrawal') : [];
+  }, [pendingTransactions]);
 
   return (
     <Card>
