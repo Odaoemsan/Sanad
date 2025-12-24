@@ -17,22 +17,26 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # متوافق مع Capacitor CLI الحديث
+          node-version: '20'
 
       - name: Install Dependencies
         run: npm install
 
       - name: Build Web Project
-        run: npm run build
+        run: |
+          npm run build
+          # التأكد من وجود مجلد out لمنع خطأ Capacitor
+          mkdir -p out && touch out/.gitkeep 
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '21' # تم التحديث لحل خطأ "invalid source release: 21"
+          java-version: '21'
           distribution: 'temurin'
 
       - name: Build APK (Debug)
         run: |
+          # المزامنة مع التأكد من المسار
           npx cap sync android
           chmod +x android/gradlew
           cd android && ./gradlew assembleDebug
@@ -42,4 +46,3 @@ jobs:
         with:
           name: sanad-app-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
-
