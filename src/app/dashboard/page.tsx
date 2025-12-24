@@ -43,6 +43,7 @@ import { AdminPlansCard } from "./admin/_components/admin-plans-card";
 import { AdminAnnouncementsCard } from "./admin/_components/admin-announcements-card";
 import { AdminSettingsCard } from "./admin/_components/admin-settings-card";
 import { AdminUsersStatsCard } from "./admin/_components/admin-users-stats-card";
+import { AdminAnalyticsCard } from './admin/_components/admin-analytics-card';
 
 const ADMIN_UID = "eQwg5buDT7b0dtU391R8LZXBtjs1";
 
@@ -147,6 +148,7 @@ export default function DashboardPage() {
           <div className="grid gap-6 lg:grid-cols-3">
               {/* Main column for actions */}
               <div className="lg:col-span-2 grid auto-rows-max gap-6">
+                  <AdminAnalyticsCard />
                   <AdminDepositsCard />
                   <AdminWithdrawalsCard />
               </div>
