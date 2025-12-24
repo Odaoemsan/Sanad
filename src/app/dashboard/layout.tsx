@@ -17,6 +17,7 @@ import { useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { AnnouncementBanner } from '@/components/announcement-banner';
 import { BottomNavBar } from '@/components/layout/bottom-nav-bar';
+import { DashboardHeader } from '@/components/layout/dashboard-header';
 
 
 export default function DashboardLayout({
@@ -68,10 +69,12 @@ export default function DashboardLayout({
         </SidebarFooter>
       </Sidebar>
       <div className="flex-1 flex flex-col">
-          <div className="flex-grow pb-16">
+          <DashboardHeader />
+          <div className="flex-grow pb-24 md:pb-4">
           {!pathname.startsWith('/dashboard/admin') && <AnnouncementBanner />}
           {children}
         </div>
+         <BottomNavBar />
       </div>
     </div>
   );

@@ -9,6 +9,9 @@ export default {
   ],
   theme: {
     extend: {
+      borderRadius: {
+        '4xl': '2rem', // Add larger border radius
+      },
       fontFamily: {
         body: ['Tajawal', 'sans-serif'],
         headline: ['Tajawal', 'sans-serif'],

@@ -95,8 +95,8 @@ export function DashboardNav() {
 
 export function DashboardNavHeader() {
     return (
-        <Link href="/" className="flex items-center gap-2 font-semibold">
-          <MountainIcon className="h-6 w-6 text-primary" />
+        <Link href="/" className="flex items-center gap-2 font-semibold text-lg p-2">
+          <MountainIcon className="h-8 w-8 text-primary" />
           <span className="duration-200 group-data-[collapsible=icon]:hidden">SNAD</span>
         </Link>
     )
