@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useDatabase, useUser, useDatabaseObject, useDatabaseList, useMemoFirebase } from '@/firebase';
-import { ref, update, push, serverTimestamp, runTransaction } from 'firebase/database';
+import { ref, update, push, serverTimestamp, runTransaction, set } from 'firebase/database';
 import { CheckCircle, Loader, Clock, Zap, TrendingUp } from 'lucide-react';
 import type { InvestmentPlan, UserProfile, Investment } from '@/lib/placeholder-data';
 import { addHours, formatDistanceToNowStrict, isBefore } from 'date-fns';
