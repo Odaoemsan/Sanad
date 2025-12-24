@@ -47,33 +47,23 @@ export function DashboardNav() {
     setOpenMobile(false);
   };
   
-  const itemsToShow = user?.uid === ADMIN_UID ? [...navItems, ...adminNavItems] : navItems;
+  const itemsToShow = user?.uid === ADMIN_UID ? adminNavItems : navItems;
 
   return (
     <SidebarMenu>
       {itemsToShow.map((item) => {
         // Special case for admin root, should not be active if on a sub-page like /admin/users
         const isAdminRoot = item.href === '/dashboard/admin';
-        const isActive = isAdminRoot ? pathname === item.href : pathname.startsWith(item.href);
-        
-        // Exact match for the main dashboard page
-        if (item.href === '/dashboard') {
-          const isDashboardActive = pathname === item.href;
-           return (
-            <SidebarMenuItem key={item.href}>
-              <Link href={item.href} onClick={handleLinkClick}>
-                <SidebarMenuButton
-                  isActive={isDashboardActive}
-                  tooltip={{ children: item.label, side: 'right' }}
-                >
-                  <item.icon />
-                  <span>{item.label}</span>
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-          )
-        }
+        const isDashboardRoot = item.href === '/dashboard';
 
+        let isActive = false;
+        if (isAdminRoot) {
+            isActive = pathname === item.href;
+        } else if (isDashboardRoot) {
+            isActive = pathname === item.href;
+        } else {
+            isActive = pathname.startsWith(item.href);
+        }
 
         return (
           <SidebarMenuItem key={item.href}>
