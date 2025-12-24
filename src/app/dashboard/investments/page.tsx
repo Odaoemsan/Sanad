@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, Calendar, Clock, DollarSign, TrendingUp, Briefcase, Ban, AlertTriangle } from "lucide-react";
@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useUser, useDatabase, useDatabaseList, useMemoFirebase } from "@/firebase";
 import { ref, update, get } from "firebase/database";
-import { differenceInDays, format, isAfter, parseISO, addHours, differenceInHours } from "date-fns";
-import type { InvestmentPlan } from "@/lib/placeholder-data";
+import { differenceInDays, format, isAfter, parseISO, addHours, differenceInHours, isPast } from "date-fns";
+import type { InvestmentPlan, UserProfile } from "@/lib/placeholder-data";
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -47,9 +47,10 @@ function InvestmentCalculator({ investment, plans }: { investment: Investment, p
     const progress = totalDuration > 0 ? Math.max(0, Math.min(100, (daysPassed / totalDuration) * 100)) : 0;
 
     const dailyProfit = (investment.amount * plan.dailyReturn) / 100;
-    const totalProfit = dailyProfit * daysPassed;
+    const totalProfit = dailyProfit * Math.min(daysPassed, totalDuration); // Only calculate profit for the duration of the plan
     
     const canCancel = isAfter(new Date(), addHours(startDate, 24));
+    const isCompleted = isPast(endDate);
 
     return {
         ...investment,
@@ -60,6 +61,7 @@ function InvestmentCalculator({ investment, plans }: { investment: Investment, p
         dailyProfit,
         totalProfit,
         canCancel,
+        isCompleted
     };
 }
 
@@ -69,6 +71,7 @@ export default function InvestmentsPage() {
     const database = useDatabase();
     const { toast } = useToast();
     const [isCancelling, setIsCancelling] = useState(false);
+    const [isCompleting, setIsCompleting] = useState(false);
 
     const investmentsRef = useMemoFirebase(() => {
         if (!user || !database) return null;
@@ -80,11 +83,47 @@ export default function InvestmentsPage() {
     const { data: investmentsData, isLoading: isLoadingInvestments } = useDatabaseList<Investment>(investmentsRef);
     const { data: plansData, isLoading: isLoadingPlans } = useDatabaseList<InvestmentPlan>(plansRef);
 
-    // CRITICAL FIX: Ensure investmentsData is not null before filtering.
     const activeInvestment = investmentsData
         ?.filter(inv => inv.status === 'active')
         .map(inv => InvestmentCalculator({ investment: inv, plans: plansData }))
         .find(Boolean);
+
+    // Effect to auto-complete investment when its end date is reached
+    useEffect(() => {
+        const handleAutoCompletion = async () => {
+             if (activeInvestment && activeInvestment.isCompleted && !isCompleting) {
+                setIsCompleting(true);
+                 if (!user || !database) return;
+                 try {
+                     const userRef = ref(database, `users/${user.uid}`);
+                    const userSnap = await get(userRef);
+                    if (!userSnap.exists()) throw new Error("User not found.");
+
+                    const updates: { [key: string]: any } = {};
+                    const currentUser = userSnap.val();
+                    const refundedBalance = (currentUser.balance || 0) + activeInvestment.amount;
+
+                    updates[`/users/${user.uid}/balance`] = refundedBalance;
+                    updates[`/users/${user.uid}/investments/${activeInvestment.id}/status`] = 'completed';
+                    
+                    await update(ref(database), updates);
+
+                     toast({
+                        title: "اكتمل استثمارك!",
+                        description: `تمت إعادة مبلغ الاستثمار ${activeInvestment.amount}$ إلى رصيدك.`,
+                        className: "bg-green-600 border-green-600 text-white"
+                    });
+                 } catch (error) {
+                     console.error("Auto-completion failed:", error);
+                     toast({ title: 'فشل إكمال الاستثمار', description: 'حدث خطأ ما أثناء إكمال الاستثمار.', variant: 'destructive' });
+                 } finally {
+                     setIsCompleting(false);
+                 }
+            }
+        }
+        handleAutoCompletion();
+
+    }, [activeInvestment, user, database, toast, isCompleting]);
 
     const isLoading = !user || !database || isLoadingInvestments || isLoadingPlans;
     
@@ -196,7 +235,7 @@ export default function InvestmentsPage() {
                                             <span tabIndex={0}> 
                                                 <AlertDialog>
                                                     <AlertDialogTrigger asChild>
-                                                        <Button variant="destructive" className="w-full" disabled={!activeInvestment.canCancel || isCancelling}>
+                                                        <Button variant="destructive" className="w-full" disabled={!activeInvestment.canCancel || isCancelling || activeInvestment.isCompleted}>
                                                             <Ban className="ml-2 h-4 w-4" />
                                                             إلغاء الاستثمار
                                                         </Button>
@@ -218,9 +257,14 @@ export default function InvestmentsPage() {
                                                 </AlertDialog>
                                             </span>
                                         </TooltipTrigger>
-                                         {!activeInvestment.canCancel && (
+                                         {!activeInvestment.canCancel && !activeInvestment.isCompleted && (
                                             <TooltipContent>
                                                 <p>يمكنك إلغاء الاستثمار بعد مرور 24 ساعة من بدايته.</p>
+                                            </TooltipContent>
+                                        )}
+                                        {activeInvestment.isCompleted && (
+                                            <TooltipContent>
+                                                <p>لا يمكن إلغاء استثمار مكتمل.</p>
                                             </TooltipContent>
                                         )}
                                     </Tooltip>
