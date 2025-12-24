@@ -19,14 +19,14 @@ import { useDatabase, useDatabaseList, useMemoFirebase } from "@/firebase";
 import { ref, update } from 'firebase/database';
 import type { UserProfile } from "@/lib/placeholder-data";
 import { Button } from "@/components/ui/button";
-import { Mail, Edit, Check, X, Zap } from "lucide-react";
+import { Mail, Edit, Check, X, Zap, Activity } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { useAuth } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
-export function AdminUsersTab() {
+export function AdminUsersPage() {
   const database = useDatabase();
   const auth = useAuth();
   const { toast } = useToast();
@@ -106,12 +106,14 @@ export function AdminUsersTab() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>قائمة المستخدمين</CardTitle>
+        <CardTitle>قائمة المستخدمين ({users?.length || 0})</CardTitle>
         <CardDescription>عرض وتعديل بيانات المستخدمين.</CardDescription>
       </CardHeader>
       <CardContent>
         {pageIsLoading ? (
-          <p>جاري تحميل المستخدمين...</p>
+          <div className="flex items-center justify-center p-10">
+              <Activity className="h-10 w-10 animate-pulse text-primary" />
+          </div>
         ) : (
           <Table>
             <TableHeader>
@@ -155,7 +157,7 @@ export function AdminUsersTab() {
                       onClick={() => handleSendPasswordReset(user.email)}
                     >
                       <Mail className="ml-2 h-4 w-4" />
-                      إعادة تعيين كلمة المرور
+                      إعادة تعيين
                     </Button>
                      <Button
                       variant="secondary"
@@ -164,7 +166,7 @@ export function AdminUsersTab() {
                       disabled={resetingProfitFor === user.id}
                     >
                       <Zap className="ml-2 h-4 w-4" />
-                       {resetingProfitFor === user.id ? 'جارٍ...' : 'إعادة تفعيل الربح'}
+                       {resetingProfitFor === user.id ? 'جارٍ...' : 'تفعيل الربح'}
                     </Button>
                   </TableCell>
                 </TableRow>

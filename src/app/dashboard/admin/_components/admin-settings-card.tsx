@@ -7,10 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useDatabase, useDatabaseObject, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { ref, set, update } from 'firebase/database';
+import { ref, update } from 'firebase/database';
 import { Activity } from 'lucide-react';
 
-export function AdminSettingsTab() {
+export function AdminSettingsCard() {
   const database = useDatabase();
   const { toast } = useToast();
   const [telegramLink, setTelegramLink] = useState('');
@@ -49,7 +49,7 @@ export function AdminSettingsTab() {
     <Card>
       <CardHeader>
         <CardTitle>الإعدادات العامة</CardTitle>
-        <CardDescription>إدارة الإعدادات العامة للتطبيق مثل روابط الدعم وعناوين الإيداع.</CardDescription>
+        <CardDescription>إدارة الإعدادات العامة للتطبيق.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {isLoading ? (

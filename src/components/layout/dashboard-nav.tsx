@@ -32,7 +32,8 @@ const navItems = [
 ];
 
 const adminNavItems = [
-  { href: '/dashboard/admin', label: 'لوحة تحكم الأدمن', icon: Shield },
+  { href: '/dashboard/admin', label: 'لوحة التحكم', icon: Shield },
+  { href: '/dashboard/admin/users', label: 'إدارة المستخدمين', icon: Users },
 ];
 
 const ADMIN_UID = "eQwg5buDT7b0dtU391R8LZXBtjs1";
@@ -50,19 +51,28 @@ export function DashboardNav() {
 
   return (
     <SidebarMenu>
-      {itemsToShow.map((item) => (
-        <SidebarMenuItem key={item.href}>
-          <Link href={item.href} onClick={handleLinkClick}>
-            <SidebarMenuButton
-              isActive={pathname === item.href || (pathname.startsWith(item.href) && item.href !== '/dashboard')}
-              tooltip={{ children: item.label, side: 'right' }}
-            >
-              <item.icon />
-              <span>{item.label}</span>
-            </SidebarMenuButton>
-          </Link>
-        </SidebarMenuItem>
-      ))}
+      {itemsToShow.map((item) => {
+        const isActive = item.href === '/dashboard' 
+          ? pathname === item.href 
+          : pathname.startsWith(item.href);
+
+        // Special case for admin root, should not be active if on a sub-page like /admin/users
+        const isAdminRootActive = item.href === '/dashboard/admin' && pathname === '/dashboard/admin';
+
+        return (
+          <SidebarMenuItem key={item.href}>
+            <Link href={item.href} onClick={handleLinkClick}>
+              <SidebarMenuButton
+                isActive={item.href === '/dashboard/admin' ? isAdminRootActive : isActive}
+                tooltip={{ children: item.label, side: 'right' }}
+              >
+                <item.icon />
+                <span>{item.label}</span>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+        )
+      })}
     </SidebarMenu>
   );
 }

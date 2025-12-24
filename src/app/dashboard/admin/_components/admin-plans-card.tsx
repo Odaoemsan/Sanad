@@ -46,7 +46,7 @@ const initialPlanState: Omit<InvestmentPlan, 'id'> = {
   isPopular: false,
 };
 
-export function AdminPlansTab() {
+export function AdminPlansCard() {
   const database = useDatabase();
   const { toast } = useToast();
 
@@ -139,12 +139,12 @@ export function AdminPlansTab() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle>إدارة خطط الاستثمار</CardTitle>
-            <CardDescription>إنشاء وتعديل وحذف خطط الاستثمار المتاحة للمستخدمين.</CardDescription>
+            <CardTitle>إدارة الخطط</CardTitle>
+            <CardDescription>إنشاء وتعديل وحذف الخطط.</CardDescription>
           </div>
-          <Button onClick={() => handleOpenModal()}>
+          <Button onClick={() => handleOpenModal()} size="sm">
             <PlusCircle className="ml-2 h-4 w-4" />
-            خطة جديدة
+            جديدة
           </Button>
         </CardHeader>
         <CardContent>
@@ -154,27 +154,21 @@ export function AdminPlansTab() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>اسم الخطة</TableHead>
-                  <TableHead>الربح اليومي (%)</TableHead>
-                  <TableHead>المدة (أيام)</TableHead>
-                  <TableHead>الحد الأدنى ($)</TableHead>
-                  <TableHead>الحد الأقصى ($)</TableHead>
-                  <TableHead>شائعة؟</TableHead>
+                  <TableHead>الاسم</TableHead>
+                  <TableHead>الربح</TableHead>
+                  <TableHead>المدة</TableHead>
                   <TableHead>الإجراءات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {plans?.map((plan) => (
                   <TableRow key={plan.id}>
-                    <TableCell>{plan.name}</TableCell>
-                    <TableCell>{plan.dailyReturn}</TableCell>
-                    <TableCell>{plan.duration}</TableCell>
-                    <TableCell>{plan.minDeposit}</TableCell>
-                    <TableCell>{plan.maxDeposit}</TableCell>
-                    <TableCell>{plan.isPopular ? "نعم" : "لا"}</TableCell>
+                    <TableCell className="font-medium">{plan.name}</TableCell>
+                    <TableCell>{plan.dailyReturn}%</TableCell>
+                    <TableCell>{plan.duration} ي</TableCell>
                     <TableCell className="flex gap-2">
-                      <Button variant="outline" size="icon" onClick={() => handleOpenModal(plan)}><Edit className="h-4 w-4" /></Button>
-                      <Button variant="destructive" size="icon" onClick={() => handleDeletePlan(plan.id)}><Trash2 className="h-4 w-4" /></Button>
+                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenModal(plan)}><Edit className="h-4 w-4" /></Button>
+                      <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => handleDeletePlan(plan.id)}><Trash2 className="h-4 w-4" /></Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -191,7 +185,7 @@ export function AdminPlansTab() {
               <DialogTitle>{currentPlan.id ? 'تعديل الخطة' : 'إنشاء خطة جديدة'}</DialogTitle>
               <DialogDescription>املأ التفاصيل أدناه.</DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
+            <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="name" className="text-right">الاسم</Label>
                 <Input id="name" name="name" value={currentPlan.name || ''} onChange={handleChange} className="col-span-3" />

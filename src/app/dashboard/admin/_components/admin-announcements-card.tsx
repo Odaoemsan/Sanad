@@ -26,7 +26,7 @@ type Announcement = {
     timestamp: number;
 }
 
-export function AdminAnnouncementsTab() {
+export function AdminAnnouncementsCard() {
   const database = useDatabase();
   const { toast } = useToast();
   const [announcementText, setAnnouncementText] = useState('');
@@ -88,7 +88,7 @@ export function AdminAnnouncementsTab() {
     <Card>
       <CardHeader>
         <CardTitle>إدارة الإعلانات</CardTitle>
-        <CardDescription>أنشئ، حدّث أو احذف الإعلان الذي يظهر للمستخدمين عند فتح التطبيق.</CardDescription>
+        <CardDescription>أنشئ أو حدّث الإعلان الذي يظهر للمستخدمين.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {isLoading ? (
@@ -120,14 +120,14 @@ export function AdminAnnouncementsTab() {
                         <AlertDialogTrigger asChild>
                             <Button variant="destructive" disabled={isDeleting}>
                                 <Trash2 className="ml-2 h-4 w-4" />
-                                حذف الإعلان
+                                حذف
                             </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                             <AlertDialogHeader>
                             <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
                             <AlertDialogDescription>
-                                سيؤدي هذا إلى حذف الإعلان بشكل دائم من قاعدة البيانات ولن يظهر للمستخدمين بعد الآن.
+                                سيؤدي هذا إلى حذف الإعلان بشكل دائم.
                             </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
