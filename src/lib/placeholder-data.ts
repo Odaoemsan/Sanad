@@ -32,7 +32,7 @@ export type Investment = {
 
 export type Transaction = {
   id: string;
-  type: 'Deposit' | 'Withdrawal' | 'Profit' | 'Referral Bonus' | 'Investment' | 'BalanceAdjustment';
+  type: 'Deposit' | 'Withdrawal' | 'Profit' | 'Referral Bonus' | 'Investment' | 'BalanceAdjustment' | 'Bounty Reward';
   amount: number;
   transactionDate: string; // ISO String
   status: 'Completed' | 'Pending' | 'Failed';
@@ -51,4 +51,25 @@ export type Referral = {
     referredUsername: string;
     referralDate: string; // ISO String
     bonusAmount: number;
+}
+
+export type Bounty = {
+    id: string;
+    title: string;
+    description: string;
+    reward: number;
+    submissionType: 'link' | 'image';
+    isActive: boolean;
+    createdAt: string; // ISO String
+}
+
+export type BountySubmission = {
+    id: string;
+    bountyId: string;
+    bountyTitle: string;
+    userId: string;
+    userEmail: string;
+    status: 'Pending' | 'Approved' | 'Rejected';
+    submissionData: string; // Link or Data URI for image
+    submittedAt: string; // ISO String
 }

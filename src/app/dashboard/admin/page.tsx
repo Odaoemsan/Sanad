@@ -1,7 +1,7 @@
 'use client';
 
 import { useUser } from "@/firebase";
-import { Shield, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { Shield, AlertTriangle } from 'lucide-react';
 import { AdminDepositsCard } from "./_components/admin-deposits-card";
 import { AdminWithdrawalsCard } from "./_components/admin-withdrawals-card";
 import { AdminPlansCard } from "./_components/admin-plans-card";
@@ -9,6 +9,8 @@ import { AdminAnnouncementsCard } from "./_components/admin-announcements-card";
 import { AdminSettingsCard } from "./_components/admin-settings-card";
 import { AdminUsersStatsCard } from "./_components/admin-users-stats-card";
 import { AdminAnalyticsCard } from "./_components/admin-analytics-card";
+import { AdminBountyCard } from "./_components/admin-bounty-card";
+import { AdminSubmissionsCard } from "./_components/admin-submissions-card";
 
 const ADMIN_UID = "eQwg5buDT7b0dtU391R8LZXBtjs1";
 
@@ -48,12 +50,14 @@ export default function AdminPage() {
                         <AdminAnalyticsCard />
                         <AdminDepositsCard />
                         <AdminWithdrawalsCard />
+                        <AdminSubmissionsCard />
                     </div>
                     
                     {/* Sidebar for other settings */}
                     <div className="lg:col-span-1 grid auto-rows-max gap-6">
                         <AdminUsersStatsCard />
                         <AdminPlansCard />
+                        <AdminBountyCard />
                         <AdminAnnouncementsCard />
                         <AdminSettingsCard />
                     </div>

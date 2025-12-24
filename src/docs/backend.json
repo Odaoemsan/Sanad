@@ -237,6 +237,39 @@
         "referralDate",
         "bonusAmount"
       ]
+    },
+     "Bounty": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Bounty",
+      "type": "object",
+      "description": "Represents a task a user can complete for a reward.",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "reward": { "type": "number" },
+        "submissionType": { "type": "string", "enum": ["link", "image"] },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "title", "reward", "submissionType", "isActive", "createdAt"]
+    },
+    "BountySubmission": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BountySubmission",
+      "type": "object",
+      "description": "Represents a user's submission for a bounty.",
+      "properties": {
+        "id": { "type": "string" },
+        "bountyId": { "type": "string" },
+        "bountyTitle": { "type": "string" },
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "status": { "type": "string", "enum": ["Pending", "Approved", "Rejected"] },
+        "submissionData": { "type": "string" },
+        "submittedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "bountyId", "bountyTitle", "userId", "userEmail", "status", "submissionData", "submittedAt"]
     }
   },
   "auth": {

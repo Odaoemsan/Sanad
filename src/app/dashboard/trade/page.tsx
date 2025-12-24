@@ -1,15 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect, useRef } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useDatabase, useUser, useDatabaseObject, useDatabaseList, useMemoFirebase } from '@/firebase';
-import { ref, update, push, serverTimestamp, runTransaction, set } from 'firebase/database';
-import { CheckCircle, Loader, Clock, Zap, TrendingUp } from 'lucide-react';
-import type { InvestmentPlan, UserProfile, Investment } from '@/lib/placeholder-data';
-import { addHours, formatDistanceToNowStrict, isBefore } from 'date-fns';
+import { useUser, useDatabase, useDatabaseObject, useDatabaseList, useMemoFirebase } from '@/firebase';
+import { ref, update, push, serverTimestamp, runTransaction, set, query, orderByChild, equalTo } from 'firebase/database';
+import { CheckCircle, Loader, Clock, Zap, TrendingUp, Gift, Paperclip, Link as LinkIcon, Upload, AlertCircle } from 'lucide-react';
+import type { InvestmentPlan, UserProfile, Investment, Bounty, BountySubmission } from '@/lib/placeholder-data';
+import { addHours, formatDistanceToNowStrict, isBefore, format } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+
 
 const tradingMessages = [
     { text: "بدء جلسة التداول...", delay: 0 },
@@ -21,7 +27,7 @@ const tradingMessages = [
     { text: "احتساب الأرباح وتأمينها...", delay: 18000 },
 ];
 
-export default function DailyProfitPage() {
+function DailyProfitClaim() {
     const { user } = useUser();
     const database = useDatabase();
     const { toast } = useToast();
@@ -33,29 +39,17 @@ export default function DailyProfitPage() {
     const [processingMessage, setProcessingMessage] = useState('');
     const [claimedAmount, setClaimedAmount] = useState(0);
 
-    const userProfileRef = useMemoFirebase(() => {
-        if (!database || !user) return null;
-        return ref(database, `users/${user.uid}`);
-    }, [database, user]);
-
-     const investmentsRef = useMemoFirebase(() => {
-        if (!user || !database) return null;
-        return ref(database, `users/${user.uid}/investments`);
-    }, [user, database]);
-    
+    const userProfileRef = useMemoFirebase(() => (database && user) ? ref(database, `users/${user.uid}`) : null, [database, user]);
+    const investmentsRef = useMemoFirebase(() => (user && database) ? ref(database, `users/${user.uid}/investments`) : null, [user, database]);
     const investmentPlansRef = useMemoFirebase(() => database ? ref(database, 'investment_plans') : null, [database]);
 
     const { data: userProfile, isLoading: isProfileLoading } = useDatabaseObject<UserProfile>(userProfileRef);
     const { data: investments, isLoading: areInvestmentsLoading } = useDatabaseList<Investment>(investmentsRef);
     const { data: investmentPlans, isLoading: arePlansLoading } = useDatabaseList<InvestmentPlan>(investmentPlansRef);
-
+    
     useEffect(() => {
         let timer: NodeJS.Timeout | undefined;
-
-        if (isProfileLoading || !userProfile) {
-            setClaimStatus('loading');
-            return;
-        }
+        if (isProfileLoading || !userProfile) return;
 
         if (claimStatus !== 'processing' && claimStatus !== 'success') {
             const now = new Date();
@@ -63,70 +57,43 @@ export default function DailyProfitPage() {
 
             if (typeof lastClaimTimestamp === 'number') {
                 const nextPossibleClaimTime = addHours(new Date(lastClaimTimestamp), 24);
-
                 if (isBefore(now, nextPossibleClaimTime)) {
                     setClaimStatus('claimed');
-                    // Update countdown immediately and then set interval
-                    const updateCountdown = () => {
-                         const remaining = formatDistanceToNowStrict(nextPossibleClaimTime, { locale: ar, addSuffix: true });
-                         setCountdown(remaining);
-                    };
+                    const updateCountdown = () => setCountdown(formatDistanceToNowStrict(nextPossibleClaimTime, { locale: ar, addSuffix: true }));
                     updateCountdown();
                     timer = setInterval(updateCountdown, 1000);
                 } else {
                     setClaimStatus('ready');
-                    if (timer) clearInterval(timer);
                 }
             } else {
-                 setClaimStatus('ready'); // Can claim if it's null or not a number
-                 if (timer) clearInterval(timer);
+                 setClaimStatus('ready');
             }
         }
-        
-        return () => {
-            if (timer) clearInterval(timer);
-        };
+        return () => { if (timer) clearInterval(timer); };
     }, [userProfile, isProfileLoading, claimStatus]);
-    
+
     const hasActiveInvestments = investments?.some(inv => inv.status === 'active');
     
     const handleClaimProfit = async () => {
-        if (!database || !user || !userProfile || !userProfileRef || claimStatus !== 'ready' || !hasActiveInvestments) {
-            if (!hasActiveInvestments) {
-                 toast({
-                    title: "لا توجد استثمارات نشطة",
-                    description: "يجب أن يكون لديك استثمار نشط على الأقل لجمع الأرباح.",
-                    variant: 'destructive',
-                });
-            }
+        if (!database || !user || !userProfile || !userProfileRef || !hasActiveInvestments) {
+            toast({ title: "لا توجد استثمارات نشطة", variant: 'destructive' });
             return;
         }
-
         setClaimStatus('processing');
 
         const totalDailyProfit = investments?.reduce((acc, investment) => {
             const plan = investmentPlans?.find(p => p.id === investment.investmentPlanId);
-            if (plan && investment.status === 'active') {
-                return acc + (investment.amount * plan.dailyReturn) / 100;
-            }
-            return acc;
+            return (plan && investment.status === 'active') ? acc + (investment.amount * plan.dailyReturn) / 100 : acc;
         }, 0) || 0;
-        
         setClaimedAmount(totalDailyProfit);
 
         if (totalDailyProfit <= 0) {
-            toast({
-                title: "لا يوجد ربح لجمعه",
-                description: "أرباحك اليومية هي 0.00$.",
-                variant: 'destructive',
-            });
+            toast({ title: "لا يوجد ربح لجمعه", variant: 'destructive' });
             setClaimStatus('ready');
             return;
         }
         
-        tradingMessages.forEach(msg => {
-            setTimeout(() => setProcessingMessage(msg.text), msg.delay);
-        });
+        tradingMessages.forEach(msg => setTimeout(() => setProcessingMessage(msg.text), msg.delay));
 
         setTimeout(async () => {
             try {
@@ -134,152 +101,201 @@ export default function DailyProfitPage() {
                     if (currentData) {
                         const now = new Date();
                         const lastClaim = currentData.lastProfitClaim;
-                        if (typeof lastClaim === 'number') {
-                            const nextClaimTime = addHours(new Date(lastClaim), 24);
-                            if (isBefore(now, nextClaimTime)) {
-                                // Abort transaction by returning undefined. This will cause the promise to reject.
-                                return;
-                            }
-                        }
-                        
+                        if (typeof lastClaim === 'number' && isBefore(now, addHours(new Date(lastClaim), 24))) return;
                         currentData.balance = (currentData.balance || 0) + totalDailyProfit;
                         currentData.lastProfitClaim = serverTimestamp() as any;
                         return currentData;
                     }
-                    return currentData; // abort if no data
+                    return currentData;
                 });
 
                 if (transactionResult.committed) {
                     const transactionRef = push(ref(database, `transactions`));
                     await set(transactionRef, {
-                        id: transactionRef.key,
-                        type: 'Profit',
-                        amount: totalDailyProfit,
-                        transactionDate: new Date().toISOString(),
-                        status: 'Completed',
-                        userProfileId: user.uid,
-                        paymentGateway: 'Daily Profit Claim'
+                        id: transactionRef.key, type: 'Profit', amount: totalDailyProfit,
+                        transactionDate: new Date().toISOString(), status: 'Completed', userProfileId: user.uid
                     });
-                    
                     setClaimStatus('success');
-
-                    setTimeout(() => {
-                        setClaimStatus('claimed');
-                    }, 3000);
+                    setTimeout(() => setClaimStatus('claimed'), 3000);
                 } else {
-                     // This case handles when the transaction is aborted because the user has already claimed.
                     toast({ title: 'فشل جمع الربح', description: 'لقد قمت بالفعل بجمع الربح خلال الـ 24 ساعة الماضية.', variant: 'destructive' });
                     setClaimStatus('ready');
                 }
-
             } catch (error: any) {
-                console.error("Profit claim failed:", error);
-                 // The promise from `runTransaction` rejects if the transaction is aborted by returning undefined.
-                 // We can check the error message to see if it was an intentional abort.
-                 if (error && error.message && error.message.toLowerCase().includes('transaction was aborted')) {
-                     toast({ title: 'فشل جمع الربح', description: 'لقد قمت بالفعل بجمع الربح خلال الـ 24 ساعة الماضية.', variant: 'destructive' });
-                 } else {
-                    toast({ title: 'خطأ', description: 'فشل جمع الربح اليومي.', variant: 'destructive' });
-                 }
+                toast({ title: 'خطأ', description: 'فشل جمع الربح اليومي.', variant: 'destructive' });
                 setClaimStatus('ready');
             }
         }, 20000);
     };
 
-    
-    const isLoading = !user || !database || areInvestmentsLoading || arePlansLoading || isProfileLoading;
-
+    const isLoading = isProfileLoading || areInvestmentsLoading || arePlansLoading;
     const renderContent = () => {
+        if (isLoading) return <div className="flex flex-col items-center justify-center space-y-4"><Loader className="h-16 w-16 animate-spin text-primary" /><p className="text-muted-foreground">جاري تحميل حالة الربح...</p></div>
         switch (claimStatus) {
-            case 'loading':
-                return (
-                    <div className="flex flex-col items-center justify-center space-y-4">
-                        <Loader className="h-16 w-16 animate-spin text-primary" />
-                        <p className="text-muted-foreground">جاري تحميل حالة الربح...</p>
-                    </div>
-                );
-            case 'ready':
-                return (
-                    <div className="flex flex-col items-center justify-center space-y-6 text-center">
-                         <Zap className="h-20 w-20 text-primary" />
-                         <h3 className="text-2xl font-bold">أرباحك اليومية جاهزة للجمع!</h3>
-                         <p className="text-muted-foreground max-w-sm">
-                             اضغط على الزر أدناه لبدء عملية التداول اليومي وإضافة أرباحك إلى رصيدك.
-                         </p>
-                        <Button
-                            onClick={handleClaimProfit}
-                            disabled={!hasActiveInvestments || isLoading}
-                            size="lg"
-                            className="w-full max-w-xs"
-                        >
-                           اجمع أرباح اليوم
-                        </Button>
-                         {!hasActiveInvestments && !isLoading && (
-                             <p className="text-sm text-destructive">ليس لديك استثمارات نشطة لجمع الأرباح.</p>
-                         )}
-                         {isLoading && <p className="text-sm text-muted-foreground">جاري تحميل بيانات الاستثمار...</p>}
-                    </div>
-                );
-            case 'processing':
-                 return (
-                    <div className="flex flex-col items-center justify-center space-y-4 text-center">
-                        <Loader className="h-16 w-16 animate-spin text-primary" />
-                        <h3 className="text-2xl font-bold">عملية التداول جارية...</h3>
-                        <p className="text-green-500 font-medium max-w-sm h-5 flex items-center gap-2">
-                           <TrendingUp className="h-4 w-4" /> {processingMessage}
-                        </p>
-                    </div>
-                );
-            case 'success':
-                return (
-                    <div className="flex flex-col items-center justify-center space-y-4 text-center animate-in fade-in zoom-in-95">
-                        <CheckCircle className="h-20 w-20 text-green-500" />
-                        <h3 className="text-2xl font-bold">تمت إضافة الأرباح بنجاح!</h3>
-                        <p className="text-2xl font-bold text-green-500">
-                           +${claimedAmount.toFixed(2)}
-                        </p>
-                    </div>
-                );
-            case 'claimed':
-                 return (
-                     <div className="flex flex-col items-center justify-center space-y-6 text-center">
-                        <CheckCircle className="h-20 w-20 text-green-500" />
-                        <h3 className="text-2xl font-bold">لقد جمعت أرباحك لهذا اليوم بنجاح.</h3>
-                        <p className="text-muted-foreground max-w-sm">
-                            يمكنك جمع أرباحك التالية بعد انتهاء العداد.
-                        </p>
-                        <div className="flex items-center justify-center gap-2 text-lg text-primary font-bold p-4 bg-muted/50 rounded-lg w-full max-w-xs">
-                            <Clock className="h-6 w-6" />
-                            <span>
-                                {countdown || "جار الحساب..."}
-                            </span>
-                        </div>
-                    </div>
-                );
+            case 'ready': return <div className="flex flex-col items-center justify-center space-y-6 text-center"><Zap className="h-20 w-20 text-primary" /><h3 className="text-2xl font-bold">أرباحك اليومية جاهزة للجمع!</h3><p className="text-muted-foreground max-w-sm">اضغط على الزر أدناه لبدء عملية التداول اليومي وإضافة أرباحك إلى رصيدك.</p><Button onClick={handleClaimProfit} disabled={!hasActiveInvestments} size="lg" className="w-full max-w-xs">اجمع أرباح اليوم</Button>{!hasActiveInvestments && <p className="text-sm text-destructive">ليس لديك استثمارات نشطة لجمع الأرباح.</p>}</div>;
+            case 'processing': return <div className="flex flex-col items-center justify-center space-y-4 text-center"><Loader className="h-16 w-16 animate-spin text-primary" /><h3 className="text-2xl font-bold">عملية التداول جارية...</h3><p className="text-green-500 font-medium max-w-sm h-5 flex items-center gap-2"><TrendingUp className="h-4 w-4" /> {processingMessage}</p></div>;
+            case 'success': return <div className="flex flex-col items-center justify-center space-y-4 text-center animate-in fade-in zoom-in-95"><CheckCircle className="h-20 w-20 text-green-500" /><h3 className="text-2xl font-bold">تمت إضافة الأرباح بنجاح!</h3><p className="text-2xl font-bold text-green-500">+${claimedAmount.toFixed(2)}</p></div>;
+            case 'claimed': return <div className="flex flex-col items-center justify-center space-y-6 text-center"><CheckCircle className="h-20 w-20 text-green-500" /><h3 className="text-2xl font-bold">لقد جمعت أرباحك لهذا اليوم.</h3><p className="text-muted-foreground max-w-sm">يمكنك الجمع مرة أخرى بعد انتهاء العداد.</p><div className="flex items-center justify-center gap-2 text-lg text-primary font-bold p-4 bg-muted/50 rounded-lg w-full max-w-xs"><Clock className="h-6 w-6" /><span>{countdown || "..."}</span></div></div>;
+            default: return <div className="flex flex-col items-center justify-center space-y-4"><Loader className="h-16 w-16 animate-spin text-primary" /><p className="text-muted-foreground">جاري تحميل...</p></div>;
         }
     };
+    return <Card className="overflow-hidden"><CardHeader className="bg-muted/30"><CardTitle className="text-2xl">جمع الربح اليومي</CardTitle><CardDescription>اجمع أرباحك اليومية بناءً على استثماراتك النشطة. هذه العملية متاحة مرة كل 24 ساعة.</CardDescription></CardHeader><CardContent className="flex flex-col items-center justify-center p-6 md:p-10 min-h-[350px]">{renderContent()}</CardContent></Card>
+}
 
+function BountySystem() {
+    const { user } = useUser();
+    const database = useDatabase();
+    const { toast } = useToast();
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const [submissionData, setSubmissionData] = useState('');
+    const [proofFile, setProofFile] = useState<File | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState<string | null>(null);
+
+    const bountiesRef = useMemoFirebase(() => database ? query(ref(database, 'bounties'), orderByChild('isActive'), equalTo(true)) : null, [database]);
+    const submissionsRef = useMemoFirebase(() => (database && user) ? query(ref(database, 'bounty_submissions'), orderByChild('userId'), equalTo(user.uid)) : null, [database]);
+
+    const { data: bounties, isLoading: isLoadingBounties } = useDatabaseList<Bounty>(bountiesRef);
+    const { data: userSubmissions, isLoading: isLoadingSubmissions } = useDatabaseList<BountySubmission>(submissionsRef);
+    
+    const submittedBountyIds = useMemo(() => new Set(userSubmissions?.filter(s => s.status === 'Pending' || s.status === 'Approved').map(s => s.bountyId)), [userSubmissions]);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) { toast({ title: 'ملف غير صالح', variant: 'destructive'}); return; }
+        if (file.size > 2 * 1024 * 1024) { toast({ title: 'الملف كبير جدًا (الحد الأقصى 2MB)', variant: 'destructive'}); return; }
+        setProofFile(file);
+    };
+
+    const fileToBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = error => reject(error);
+    });
+
+    const handleSubmit = async (bounty: Bounty) => {
+        if (!user || !database) return;
+        
+        let finalSubmissionData = submissionData;
+        if (bounty.submissionType === 'image') {
+            if (!proofFile) { toast({ title: "الرجاء اختيار صورة", variant: "destructive" }); return; }
+            finalSubmissionData = await fileToBase64(proofFile);
+        } else {
+            if (!submissionData) { toast({ title: "الرجاء إدخال الرابط", variant: "destructive" }); return; }
+        }
+
+        setIsSubmitting(bounty.id);
+        try {
+            const newSubmissionRef = push(ref(database, 'bounty_submissions'));
+            await set(newSubmissionRef, {
+                id: newSubmissionRef.key,
+                bountyId: bounty.id,
+                bountyTitle: bounty.title,
+                userId: user.uid,
+                userEmail: user.email,
+                status: 'Pending',
+                submissionData: finalSubmissionData,
+                submittedAt: new Date().toISOString(),
+            });
+            toast({ title: 'تم إرسال المهمة بنجاح', description: 'سيتم مراجعتها من قبل الإدارة.' });
+            setSubmissionData('');
+            setProofFile(null);
+        } catch (error) {
+            toast({ title: 'فشل إرسال المهمة', variant: 'destructive' });
+        } finally {
+            setIsSubmitting(null);
+        }
+    };
+    
+    const isLoading = isLoadingBounties || isLoadingSubmissions;
+    
     return (
-        <>
-            <main className="flex flex-1 flex-col gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
-                <Card className="overflow-hidden">
-                    <CardHeader className="bg-muted/30">
-                        <CardTitle className="text-2xl">جمع الربح اليومي</CardTitle>
-                        <CardDescription>
-                            اجمع أرباحك اليومية بناءً على استثماراتك النشطة. هذه العملية متاحة مرة كل 24 ساعة.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex flex-col items-center justify-center space-y-8 p-6 md:p-10 min-h-[300px]">
-                        {isLoading ? (
-                            <div className="flex flex-col items-center justify-center space-y-4">
-                                <Loader className="h-16 w-16 animate-spin text-primary" />
-                                <p className="text-muted-foreground">جاري تحميل حالة الربح...</p>
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Gift /> نظام المهام</CardTitle>
+                    <CardDescription>أكمل المهام التالية واحصل على مكافآت تضاف مباشرة إلى رصيدك.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                     {isLoading && <p>جاري تحميل المهام...</p>}
+                     {!isLoading && bounties?.length === 0 && <p className="text-muted-foreground text-center p-4">لا توجد مهام متاحة حاليًا.</p>}
+
+                     {bounties?.map(bounty => {
+                         const isCompleted = submittedBountyIds.has(bounty.id);
+                         return (
+                            <Card key={bounty.id} className="bg-muted/30">
+                                <CardHeader>
+                                    <CardTitle className="text-lg flex justify-between items-center">
+                                        <span>{bounty.title}</span>
+                                        <Badge variant="secondary" className="bg-green-500/20 text-green-700">${bounty.reward}</Badge>
+                                    </CardTitle>
+                                    <CardDescription>{bounty.description}</CardDescription>
+                                </CardHeader>
+                                {!isCompleted && (
+                                    <CardFooter className="flex-col items-start gap-2">
+                                        <Label htmlFor={`submission-${bounty.id}`}>
+                                            {bounty.submissionType === 'link' ? 'أدخل الرابط هنا' : 'ارفع صورة الإثبات'}
+                                        </Label>
+                                        {bounty.submissionType === 'link' ? (
+                                            <Input id={`submission-${bounty.id}`} value={submissionData} onChange={(e) => setSubmissionData(e.target.value)} placeholder="https://..." />
+                                        ) : (
+                                            <>
+                                            <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full justify-start gap-2">
+                                                <Upload className="h-4 w-4"/>
+                                                {proofFile ? `تم اختيار: ${proofFile.name}` : 'اختر صورة الإثبات'}
+                                            </Button>
+                                            <Input id="proof-file" type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
+                                            </>
+                                        )}
+                                        <Button onClick={() => handleSubmit(bounty)} disabled={isSubmitting === bounty.id} className="w-full mt-2">
+                                            {isSubmitting === bounty.id ? 'جارٍ الإرسال...' : 'إرسال للمراجعة'}
+                                        </Button>
+                                    </CardFooter>
+                                )}
+                                {isCompleted && (
+                                    <CardFooter>
+                                         <p className="text-sm text-green-600 font-medium w-full text-center">لقد أكملت هذه المهمة أو أنها قيد المراجعة.</p>
+                                    </CardFooter>
+                                )}
+                            </Card>
+                         )
+                     })}
+                </CardContent>
+            </Card>
+
+            {userSubmissions && userSubmissions.length > 0 && (
+                 <Card>
+                    <CardHeader><CardTitle>سجل مهامي</CardTitle></CardHeader>
+                    <CardContent>
+                         {userSubmissions.sort((a,b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()).map(sub => (
+                            <div key={sub.id} className="flex justify-between items-center p-2 border-b">
+                                <div>
+                                    <p className="font-semibold">{sub.bountyTitle}</p>
+                                    <p className="text-xs text-muted-foreground">{format(new Date(sub.submittedAt), 'yyyy-MM-dd')}</p>
+                                </div>
+                                <Badge variant={sub.status === 'Approved' ? 'default' : sub.status === 'Rejected' ? 'destructive' : 'secondary'}
+                                className={cn(sub.status === 'Approved' && 'bg-green-500/20 text-green-700', sub.status === 'Rejected' && 'bg-red-500/20 text-red-700')}>
+                                    {sub.status}
+                                </Badge>
                             </div>
-                        ) : renderContent()}
+                         ))}
                     </CardContent>
                 </Card>
-            </main>
-        </>
+            )}
+
+        </div>
+    )
+}
+
+
+export default function DailyProfitPage() {
+    return (
+        <main className="flex flex-1 flex-col gap-8 p-4 sm:px-6 sm:py-0 md:gap-8">
+            <DailyProfitClaim />
+            <Separator />
+            <BountySystem />
+        </main>
     );
 }
