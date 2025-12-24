@@ -33,11 +33,8 @@ jobs:
 
       - name: Build APK (Debug)
         run: |
-          # المجلد موجود الآن، فقط نحتاج للمزامنة
           npx cap sync android
-          # إعطاء صلاحية التنفيذ لـ Gradle
           chmod +x android/gradlew
-          # البدء بعملية البناء
           cd android && ./gradlew assembleDebug
 
       - name: Upload APK
