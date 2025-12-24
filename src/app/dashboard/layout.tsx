@@ -15,7 +15,6 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useUser } from '@/firebase';
 import { useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { AnnouncementBanner } from '@/components/announcement-banner';
 import { BottomNavBar } from '@/components/layout/bottom-nav-bar';
 
@@ -28,7 +27,6 @@ export default function DashboardLayout({
   const auth = useAuth();
   const router = useRouter();
   const { user, isUserLoading } = useUser();
-  const isMobile = useIsMobile();
   const pathname = usePathname();
 
   useEffect(() => {
@@ -70,11 +68,10 @@ export default function DashboardLayout({
         </SidebarFooter>
       </Sidebar>
       <div className="flex-1 flex flex-col">
-          <div className={cn("flex-grow", isMobile ? "pb-16" : "")}>
+          <div className="flex-grow pb-16">
           {!pathname.startsWith('/dashboard/admin') && <AnnouncementBanner />}
           {children}
         </div>
-        {isMobile && <BottomNavBar />}
       </div>
     </div>
   );

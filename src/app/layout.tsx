@@ -6,6 +6,8 @@ import { Footer } from '@/components/layout/footer';
 import { FirebaseClientProvider } from '@/firebase';
 import { BottomNavBar } from '@/components/layout/bottom-nav-bar';
 import { SidebarProvider } from '@/components/ui/sidebar';
+import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 
 export const metadata: Metadata = {
@@ -31,7 +33,7 @@ export default function RootLayout({
           <SidebarProvider>
             <div className="flex flex-col min-h-screen">
               <Header />
-              <main className="flex-grow">{children}</main>
+              <main className="flex-grow pb-16">{children}</main>
               <Footer />
             </div>
             <Toaster />
