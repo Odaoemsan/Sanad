@@ -77,7 +77,7 @@ export function useDatabaseList<T = any>(
 export function useDatabaseObject<T = any>(
   memoizedRef: DatabaseReference | null | undefined
 ) {
-  const [data, setData] = useState<WithId<T> | null>(null);
+  const [data, setData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -95,7 +95,14 @@ export function useDatabaseObject<T = any>(
       memoizedRef,
       (snapshot: DataSnapshot) => {
         if (snapshot.exists()) {
-          setData({ ...(snapshot.val() as T), id: snapshot.key! });
+          const val = snapshot.val();
+          // If the value is an object, we spread it and add the key as id.
+          // If it's a primitive (like a string for depositAddress), we just set the value.
+          if (typeof val === 'object' && val !== null) {
+            setData({ ...(val as T), id: snapshot.key! });
+          } else {
+            setData(val as T);
+          }
         } else {
           setData(null);
         }

@@ -41,7 +41,7 @@ export function AdminUsersPage() {
 
   const handleEditBalance = (user: UserProfile) => {
     setEditingUserId(user.id);
-    setNewBalance(user.balance);
+    setNewBalance(user.balance || 0);
   };
 
   const handleCancelEdit = () => {
@@ -138,14 +138,15 @@ export function AdminUsersPage() {
                           value={newBalance} 
                           onChange={(e) => setNewBalance(parseFloat(e.target.value))} 
                           className="w-24 h-8"
+                          autoFocus
                         />
                         <Button size="icon" variant="ghost" className="h-8 w-8 text-green-500" onClick={() => handleUpdateBalance(user.id)}><Check /></Button>
                         <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500" onClick={handleCancelEdit}><X /></Button>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 group">
                         <span>${(user.balance || 0).toFixed(2)}</span>
-                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleEditBalance(user)}><Edit /></Button>
+                        <Button size="icon" variant="ghost" className="h-8 w-8 opacity-0 group-hover:opacity-100" onClick={() => handleEditBalance(user)}><Edit /></Button>
                       </div>
                     )}
                   </TableCell>

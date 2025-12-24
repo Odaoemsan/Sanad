@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Wallet, Activity, CreditCard, Copy, Upload } from "lucide-react";
+import { Wallet, CreditCard, Copy, Upload } from "lucide-react";
 import { useState, useRef } from "react";
 import { useUser, useDatabase, useDatabaseObject, useMemoFirebase, useAuth, useDatabaseList } from '@/firebase';
 import { ref, push, set, runTransaction as runDBTransaction } from 'firebase/database';
@@ -30,17 +30,11 @@ function DepositForm() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const depositAddressRef = useMemoFirebase(() => database ? ref(database, 'settings/depositAddress') : null, [database]);
-    const { data: depositAddressData } = useDatabaseObject<{'.value': string}>(depositAddressRef as any);
-    
-    let depositAddress = "Loading...";
-    if (depositAddressData && typeof depositAddressData === 'object' && '.value' in depositAddressData) {
-        depositAddress = depositAddressData['.value'] as any;
-    } else if (typeof depositAddressData === 'string') {
-        depositAddress = depositAddressData;
-    }
+    // The data for a direct leaf node in RTDB is just the value itself.
+    const { data: depositAddress, isLoading: isLoadingAddress } = useDatabaseObject<string>(depositAddressRef);
 
     const copyToClipboard = () => {
-        if (depositAddress !== "Loading...") {
+        if (depositAddress) {
             navigator.clipboard.writeText(depositAddress);
             toast({ title: 'تم نسخ العنوان!' });
         }
@@ -126,11 +120,11 @@ function DepositForm() {
                 <Label>عنوان الإيداع (USDT TRC20)</Label>
                  <div className="flex w-full items-center space-x-2 space-x-reverse">
                     <Input
-                        value={depositAddress}
+                        value={isLoadingAddress ? "جاري التحميل..." : (depositAddress || "لم يتم تعيين عنوان بعد.")}
                         readOnly
                         className="font-mono text-center text-sm"
                     />
-                    <Button type="button" size="icon" variant="outline" onClick={copyToClipboard} disabled={depositAddress === 'Loading...'}>
+                    <Button type="button" size="icon" variant="outline" onClick={copyToClipboard} disabled={isLoadingAddress || !depositAddress}>
                         <Copy className="h-4 w-4" />
                     </Button>
                 </div>
