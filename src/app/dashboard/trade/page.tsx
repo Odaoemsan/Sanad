@@ -131,15 +131,14 @@ export default function DailyProfitPage() {
 
         setTimeout(async () => {
             try {
-                await runTransaction(userProfileRef, (currentData: UserProfile | null) => {
+                const transactionResult = await runTransaction(userProfileRef, (currentData: UserProfile | null) => {
                     if (currentData) {
                         const now = new Date();
                         const lastClaim = currentData.lastProfitClaim;
                         if (typeof lastClaim === 'number') {
                             const nextClaimTime = addHours(new Date(lastClaim), 24);
                             if (isBefore(now, nextClaimTime)) {
-                                console.log("Profit already claimed within 24 hours.");
-                                // Abort transaction by returning undefined
+                                // Abort transaction by returning undefined. This will cause the promise to reject.
                                 return;
                             }
                         }
@@ -151,27 +150,35 @@ export default function DailyProfitPage() {
                     return currentData; // abort if no data
                 });
 
-                const transactionRef = push(ref(database, `transactions`));
-                await set(transactionRef, {
-                    id: transactionRef.key,
-                    type: 'Profit',
-                    amount: totalDailyProfit,
-                    transactionDate: new Date().toISOString(),
-                    status: 'Completed',
-                    userProfileId: user.uid,
-                    paymentGateway: 'Daily Profit Claim'
-                });
-                
-                setClaimStatus('success');
+                if (transactionResult.committed) {
+                    const transactionRef = push(ref(database, `transactions`));
+                    await set(transactionRef, {
+                        id: transactionRef.key,
+                        type: 'Profit',
+                        amount: totalDailyProfit,
+                        transactionDate: new Date().toISOString(),
+                        status: 'Completed',
+                        userProfileId: user.uid,
+                        paymentGateway: 'Daily Profit Claim'
+                    });
+                    
+                    setClaimStatus('success');
 
-                setTimeout(() => {
-                     setClaimStatus('claimed');
-                }, 3000);
+                    setTimeout(() => {
+                        setClaimStatus('claimed');
+                    }, 3000);
+                } else {
+                     // This case handles when the transaction is aborted because the user has already claimed.
+                    toast({ title: 'فشل جمع الربح', description: 'لقد قمت بالفعل بجمع الربح خلال الـ 24 ساعة الماضية.', variant: 'destructive' });
+                    setClaimStatus('ready');
+                }
 
             } catch (error: any) {
                 console.error("Profit claim failed:", error);
-                 if (error.message.includes('permission_denied') || error.message.includes("undefined")) {
-                     toast({ title: 'خطأ', description: 'لقد قمت بالفعل بجمع الربح خلال الـ 24 ساعة الماضية.', variant: 'destructive' });
+                 // The promise from `runTransaction` rejects if the transaction is aborted by returning undefined.
+                 // We can check the error message to see if it was an intentional abort.
+                 if (error && error.message && error.message.toLowerCase().includes('transaction was aborted')) {
+                     toast({ title: 'فشل جمع الربح', description: 'لقد قمت بالفعل بجمع الربح خلال الـ 24 ساعة الماضية.', variant: 'destructive' });
                  } else {
                     toast({ title: 'خطأ', description: 'فشل جمع الربح اليومي.', variant: 'destructive' });
                  }
