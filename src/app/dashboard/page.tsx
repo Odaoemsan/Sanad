@@ -157,10 +157,10 @@ export default function DashboardPage() {
         {/* Quick Actions */}
         <div className="w-full">
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
-                <Button variant="outline" className="flex-shrink-0 bg-background/80"><Plus className="ml-2 h-4 w-4"/> إيداع</Button>
-                <Button variant="outline" className="flex-shrink-0 bg-background/80"><Send className="ml-2 h-4 w-4"/> سحب</Button>
-                <Button variant="outline" className="flex-shrink-0 bg-background/80"><UserPlus className="ml-2 h-4 w-4"/> دعوة</Button>
-                <Button variant="outline" className="flex-shrink-0 bg-background/80"><Briefcase className="ml-2 h-4 w-4"/> استثمار</Button>
+                <Button asChild variant="outline" className="flex-shrink-0 bg-background/80"><Link href="/dashboard/wallet"><Plus className="ml-2 h-4 w-4"/> إيداع</Link></Button>
+                <Button asChild variant="outline" className="flex-shrink-0 bg-background/80"><Link href="/dashboard/wallet"><Send className="ml-2 h-4 w-4"/> سحب</Link></Button>
+                <Button asChild variant="outline" className="flex-shrink-0 bg-background/80"><Link href="/dashboard/referrals"><UserPlus className="ml-2 h-4 w-4"/> دعوة</Link></Button>
+                <Button asChild variant="outline" className="flex-shrink-0 bg-background/80"><Link href="/dashboard/investments"><Briefcase className="ml-2 h-4 w-4"/> استثمار</Link></Button>
             </div>
         </div>
 
