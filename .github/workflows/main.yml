@@ -17,7 +17,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # تم التحديث لحل مشكلة Capacitor CLI
+          node-version: '20' # متوافق مع Capacitor CLI الحديث
 
       - name: Install Dependencies
         run: npm install
@@ -25,10 +25,10 @@ jobs:
       - name: Build Web Project
         run: npm run build
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '21' # تم التحديث لحل خطأ "invalid source release: 21"
           distribution: 'temurin'
 
       - name: Build APK (Debug)
