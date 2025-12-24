@@ -116,7 +116,7 @@ export default function LoginPage() {
                   <FormItem>
                     <div className="flex items-center">
                       <Label htmlFor="password">كلمة المرور</Label>
-                      <Link href="#" className="mr-auto inline-block text-sm underline">
+                      <Link href="/forgot-password" className="mr-auto inline-block text-sm underline">
                         هل نسيت كلمة المرور؟
                       </Link>
                     </div>

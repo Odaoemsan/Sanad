@@ -51,7 +51,6 @@ function ReferralCard() {
     
     const referralLink = user ? `${window.location.origin}/signup?ref=${user.uid}` : "";
     
-    // This was the source of the error. Accessing .length on null.
     const totalReferrals = referralsData?.length || 0;
     const totalCommission = referralsData?.reduce((sum, ref) => sum + (ref.bonusAmount || 0), 0) || 0;
 
@@ -111,7 +110,6 @@ export default function DashboardPage() {
 
   const transactionsRef = useMemoFirebase(() => {
     if (!user || !database) return null;
-    // Query to get transactions for the current user
     return query(ref(database, 'transactions'), orderByChild('userProfileId'), equalTo(user.uid));
   }, [user, database]);
   

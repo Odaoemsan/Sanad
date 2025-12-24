@@ -87,7 +87,7 @@ export default function SettingsPage() {
             passwordForm.reset();
         } catch (error: any) {
             console.error("Error updating password:", error);
-            if (error.code === 'auth/wrong-password') {
+            if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
                 passwordForm.setError("currentPassword", { type: "manual", message: "كلمة المرور الحالية غير صحيحة." });
             } else {
                  toast({

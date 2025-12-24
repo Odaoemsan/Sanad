@@ -81,6 +81,7 @@ export default function InvestmentsPage() {
     const { data: investmentsData, isLoading: isLoadingInvestments } = useDatabaseList<Investment>(investmentsRef);
     const { data: plansData, isLoading: isLoadingPlans } = useDatabaseList<InvestmentPlan>(plansRef);
 
+    // CRITICAL FIX: Ensure investmentsData is not null before filtering.
     const activeInvestment = investmentsData
         ?.filter(inv => inv.status === 'active')
         .map(inv => InvestmentCalculator({ investment: inv, plans: plansData }))
@@ -249,5 +250,3 @@ export default function InvestmentsPage() {
         </>
     )
 }
-
-    
