@@ -135,8 +135,8 @@ export function AdminUsersPage() {
                       <div className="flex items-center gap-2">
                         <Input 
                           type="number" 
-                          value={newBalance} 
-                          onChange={(e) => setNewBalance(parseFloat(e.target.value))} 
+                          value={String(newBalance)} 
+                          onChange={(e) => setNewBalance(parseFloat(e.target.value) || 0)} 
                           className="w-24 h-8"
                           autoFocus
                         />
