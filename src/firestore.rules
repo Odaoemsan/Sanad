@@ -1,0 +1,153 @@
+/**
+ * Core Philosophy: This ruleset enforces a strict user-ownership security model.
+ * All sensitive user data, such as investments, transactions, and referrals,
+ * is isolated within a user-specific document tree. This ensures that an
+ * authenticated user can only ever access their own information.
+ *
+ * Data Structure: The data is organized hierarchically. A top-level `/users`
+ * collection contains documents for each user, identified by their Firebase
+ * Authentication UID. All personal data (profile, investments, etc.) is stored
+ * in subcollections under the user's specific document (e.g., `/users/{userId}/investments`).
+ * Public data, like available investment plans, is stored in a separate top-level
+ * collection (`investment_plans`) to segregate it from private user data.
+ *
+ * Key Security Decisions:
+ * - User Data Is Private: All subcollections under `/users/{userId}` are
+ *   accessible only by the authenticated user who matches the `{userId}`.
+ * - User Enumeration Is Blocked: Listing documents in the top-level `/users`
+ *   collection is explicitly forbidden to normal users to protect privacy, but allowed for admin.
+ * - Public Data Is Read-Only (except for Admin): The `/investment_plans` collection is readable by
+ *   anyone, but can only be written to by the designated admin user.
+ * - Relational Integrity Is Enforced: When creating a document within a user's
+ *   subcollection (e.g., an investment), the rules mandate that the document's
+ *   internal ownership field (e.g., `userProfileId`) must match the `userId` in
+ *   the path. This ownership link is immutable and cannot be changed on update.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    //-------------------------------------------------------------------------
+    // Helper Functions
+    //-------------------------------------------------------------------------
+
+    /**
+     * Checks if a user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    /**
+     * Define the Admin UID. In a production app, this should be managed more dynamically.
+     */
+    function isAdmin() {
+      // This UID must be updated to your actual admin user's UID
+      return request.auth.uid == 'eQwg5buDT7b0dtU391R8LZXBtjs1';
+    }
+
+
+    /**
+     * Checks if the currently authenticated user's UID matches the provided userId.
+     * This is the primary function for validating resource ownership.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    /**
+     * Validates that certain fields remain unchanged during an update.
+     */
+    function isDataImmutable(fields) {
+      let isImmutable = true;
+      let i = 0;
+      while (i < fields.size()) {
+        let field = fields[i];
+        if (request.resource.data[field] != resource.data[field]) {
+          isImmutable = false;
+        }
+        i = i + 1;
+      }
+      return isImmutable;
+    }
+
+
+    //-------------------------------------------------------------------------
+    // User Data Rules
+    //-------------------------------------------------------------------------
+
+    /**
+     * @description Manages access to a user's profile document.
+     * @path /users/{userId}
+     */
+    match /users/{userId} {
+      allow get, update: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin(); // Only admin can list all users
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow delete: if isAdmin();
+
+      /**
+       * @description Manages access to a user's investment documents.
+       * @path /users/{userId}/investments/{investmentId}
+       */
+      match /investments/{investmentId} {
+        allow read, list: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && request.resource.data.userProfileId == userId;
+        // User cannot update an investment, admin can.
+        allow update: if isAdmin();
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+      
+      /**
+       * @description Manages access to a user's transaction documents.
+       * @path /users/{userId}/transactions/{transactionId}
+       */
+       match /transactions/{transactionId} {
+         allow read, list: if isOwner(userId) || isAdmin();
+         allow create: if isOwner(userId) && request.resource.data.userProfileId == userId;
+         // Admin can approve/reject transactions by updating the status. User cannot.
+         allow update: if isAdmin();
+         allow delete: if isAdmin();
+       }
+      
+      /**
+       * @description Manages access to a user's referral documents.
+       * @path /users/{userId}/referrals/{referralId}
+       */
+      match /referrals/{referralId} {
+        allow read, list: if isOwner(userId) || isAdmin();
+        // Creation is handled by server-side logic (or a trusted client function not shown here), 
+        // but we verify ownership. Referrals are created in batches when a new user signs up with a ref ID.
+        allow create: if isOwner(userId) && request.resource.data.referrerId == userId;
+        allow update, delete: if isAdmin();
+      }
+    }
+
+    //-------------------------------------------------------------------------
+    // Public Data Rules
+    //-------------------------------------------------------------------------
+
+    /**
+     * @description Manages access to public investment plans.
+     * @path /investment_plans/{planId}
+     */
+    match /investment_plans/{planId} {
+      // Anyone can read and list the plans to display them on the homepage/investment page
+      allow get, list: if true; 
+      // Only admin can create, update, delete plans
+      allow write: if isAdmin();
+    }
+    
+    //-------------------------------------------------------------------------
+    // Collection Group Queries
+    //-------------------------------------------------------------------------
+
+    /**
+     * @description Allows an Admin to query across all 'transactions' subcollections.
+     * This is essential for the "Pending Withdrawals" tab in the admin panel.
+     */
+    match /{path=**}/transactions/{transactionId} {
+      allow list: if isAdmin();
+    }
+  }
+}
