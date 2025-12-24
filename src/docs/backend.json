@@ -36,13 +36,18 @@
           "type": "string",
           "description": "The timestamp of the last daily profit claim.",
           "format": "date-time"
+        },
+        "referralCode": {
+          "type": "string",
+          "description": "The user's unique referral code."
         }
       },
       "required": [
         "id",
         "username",
         "email",
-        "registrationDate"
+        "registrationDate",
+        "referralCode"
       ]
     },
     "InvestmentPlan": {

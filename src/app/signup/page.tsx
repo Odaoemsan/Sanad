@@ -24,8 +24,8 @@ import {
 } from '@/components/ui/form';
 import { useAuth, useDatabase } from '@/firebase';
 import { createUserWithEmailAndPassword, updateProfile, UserCredential } from 'firebase/auth';
-import { ref, set, get } from 'firebase/database';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { ref, set, get, query, orderByChild, equalTo, limitToFirst } from 'firebase/database';
+import { useRouter } from 'next/navigation';
 import { Suspense, useEffect } from 'react';
 import { useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -36,6 +36,7 @@ const formSchema = z
     email: z.string().email({ message: 'الرجاء إدخال عنوان بريد إلكتروني صالح.' }),
     password: z.string().min(6, { message: 'يجب أن تكون كلمة المرور 6 أحرف على الأقل.' }),
     confirmPassword: z.string(),
+    referralCode: z.string().optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "كلمات المرور غير متطابقة",
@@ -47,10 +48,7 @@ function SignupForm() {
   const database = useDatabase();
   const router = useRouter();
   const { user, isUserLoading } = useUser();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
-
-  const referrerId = searchParams.get('ref');
 
   useEffect(() => {
     if (!isUserLoading && user) {
@@ -65,6 +63,7 @@ function SignupForm() {
       email: '',
       password: '',
       confirmPassword: '',
+      referralCode: '',
     },
   });
 
@@ -78,6 +77,7 @@ function SignupForm() {
       if (authUser) {
         await updateProfile(authUser, { displayName: values.fullName });
 
+        const referralCode = authUser.uid.substring(0, 8).toUpperCase();
         const userProfileData: any = {
           id: authUser.uid,
           username: values.fullName,
@@ -85,17 +85,23 @@ function SignupForm() {
           registrationDate: new Date().toISOString(),
           balance: 0,
           lastProfitClaim: null,
+          referralCode: referralCode,
         };
         
-        if (referrerId) {
-          const referrerRef = ref(database, `users/${referrerId}`);
-          const referrerSnap = await get(referrerRef);
-          if (referrerSnap.exists()) {
-            userProfileData.referrerId = referrerId;
-            toast({ title: "تم تسجيل الإحالة!", description: "تم ربط حسابك بالشخص الذي قام بدعوتك." });
-          } else {
-             console.warn("Referrer ID not found:", referrerId);
-          }
+        if (values.referralCode) {
+            const usersRef = ref(database, 'users');
+            const referrerQuery = query(usersRef, orderByChild('referralCode'), equalTo(values.referralCode.toUpperCase()));
+            const referrerSnap = await get(referrerQuery);
+
+            if (referrerSnap.exists()) {
+                const referrerData = referrerSnap.val();
+                const referrerId = Object.keys(referrerData)[0];
+                userProfileData.referrerId = referrerId;
+                toast({ title: "تم تسجيل الإحالة!", description: "تم ربط حسابك بالشخص الذي قام بدعوتك." });
+            } else {
+                 console.warn("Referral code not found:", values.referralCode);
+                 toast({ title: "كود الدعوة غير صالح", description: "لم يتم العثور على المستخدم صاحب كود الدعوة.", variant: "destructive" });
+            }
         }
 
         const profileRef = ref(database, `users/${authUser.uid}`);
@@ -185,6 +191,19 @@ function SignupForm() {
                     <FormLabel>تأكيد كلمة المرور</FormLabel>
                     <FormControl>
                       <Input type="password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+                <FormField
+                control={form.control}
+                name="referralCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>كود الدعوة (اختياري)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="أدخل كود الدعوة هنا" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

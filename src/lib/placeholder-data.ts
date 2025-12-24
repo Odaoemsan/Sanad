@@ -18,6 +18,7 @@ export type UserProfile = {
   lastProfitClaim?: number | object; // Unix timestamp or ServerValue
   referrerId?: string;
   investments?: { [key: string]: Investment };
+  referralCode?: string;
 }
 
 export type Investment = {

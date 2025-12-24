@@ -5,7 +5,8 @@
         ".read": "auth != null && (auth.uid == $uid || auth.uid == 'eQwg5buDT7b0dtU391R8LZXBtjs1')",
         ".write": "auth != null && (auth.uid == $uid || auth.uid == 'eQwg5buDT7b0dtU391R8LZXBtjs1')"
       },
-      ".read": "auth != null && auth.uid == 'eQwg5buDT7b0dtU391R8LZXBtjs1'"
+      ".read": "auth != null && auth.uid == 'eQwg5buDT7b0dtU391R8LZXBtjs1'",
+      ".indexOn": ["referralCode"]
     },
     "investment_plans": {
       ".read": true,

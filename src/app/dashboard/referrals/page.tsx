@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Copy, Users, Activity, Percent, ChevronsRight } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { useUser, useDatabase, useDatabaseList, useMemoFirebase } from "@/firebase";
+import { useUser, useDatabase, useDatabaseList, useDatabaseObject, useMemoFirebase } from "@/firebase";
 import { ref } from 'firebase/database';
-import type { Referral } from "@/lib/placeholder-data";
+import type { Referral, UserProfile } from "@/lib/placeholder-data";
 import { format } from "date-fns";
 
 export default function ReferralsPage() {
@@ -16,21 +16,28 @@ export default function ReferralsPage() {
     const database = useDatabase();
     const { toast } = useToast();
 
+    const userProfileRef = useMemoFirebase(() => {
+        if (!user || !database) return null;
+        return ref(database, `users/${user.uid}`);
+    }, [user, database]);
+
     const referralsRef = useMemoFirebase(() => {
         if (!user || !database) return null;
         return ref(database, `users/${user.uid}/referrals`);
     }, [user, database]);
 
-    const { data: referralsData, isLoading } = useDatabaseList<Referral>(referralsRef);
+    const { data: userProfile, isLoading: isLoadingProfile } = useDatabaseObject<UserProfile>(userProfileRef);
+    const { data: referralsData, isLoading: isLoadingReferrals } = useDatabaseList<Referral>(referralsRef);
 
-    const referralLink = user ? `${window.location.origin}/signup?ref=${user.uid}` : "";
+    const isLoading = isLoadingProfile || isLoadingReferrals;
+    const referralCode = userProfile?.referralCode || "جاري التحميل...";
 
     const copyToClipboard = () => {
-        if (!referralLink) return;
-        navigator.clipboard.writeText(referralLink);
+        if (!referralCode || referralCode === "جاري التحميل...") return;
+        navigator.clipboard.writeText(referralCode);
         toast({
             title: "تم النسخ إلى الحافظة!",
-            description: "تم نسخ رابط الإحالة الخاص بك.",
+            description: "تم نسخ كود الدعوة الخاص بك.",
         });
     };
 
@@ -94,13 +101,13 @@ export default function ReferralsPage() {
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>رابط الإحالة الخاص بك</CardTitle>
-                            <CardDescription>شارك هذا الرابط مع أصدقائك لكسب عمولات على استثماراتهم.</CardDescription>
+                            <CardTitle>كود الدعوة الخاص بك</CardTitle>
+                            <CardDescription>شارك هذا الكود مع أصدقائك واطلب منهم استخدامه عند التسجيل.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="flex w-full items-center space-x-2">
-                                <Input type="text" value={referralLink} readOnly />
-                                <Button type="button" size="icon" onClick={copyToClipboard} disabled={!referralLink}>
+                            <div className="flex w-full items-center space-x-2 space-x-reverse">
+                                <Input type="text" value={referralCode} readOnly className="font-mono text-center tracking-widest text-lg" />
+                                <Button type="button" size="icon" onClick={copyToClipboard} disabled={!userProfile?.referralCode}>
                                     <Copy className="h-4 w-4" />
                                 </Button>
                             </div>
@@ -110,7 +117,7 @@ export default function ReferralsPage() {
                     <Card>
                         <CardHeader>
                             <CardTitle>سجل الإحالات</CardTitle>
-                            <CardDescription>قائمة بالمستخدمين الذين انضموا باستخدام رابط الإحالة الخاص بك.</CardDescription>
+                            <CardDescription>قائمة بالمستخدمين الذين انضموا باستخدام كود الدعوة الخاص بك.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <Table>
