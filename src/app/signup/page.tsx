@@ -17,6 +17,7 @@ import * as z from 'zod';
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -161,6 +162,9 @@ function SignupForm() {
                     <FormControl>
                       <Input type="email" placeholder="m@example.com" {...field} />
                     </FormControl>
+                    <FormDescription>
+                        الرجاء استخدام بريد إلكتروني حقيقي. سيتم استخدامه لاستعادة حسابك.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
