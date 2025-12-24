@@ -100,7 +100,7 @@ function SignupForm() {
                 toast({ title: "تم تسجيل الإحالة!", description: "تم ربط حسابك بالشخص الذي قام بدعوتك." });
             } else {
                  console.warn("Referral code not found:", values.referralCode);
-                 toast({ title: "كود الدعوة غير صالح", description: "لم يتم العثور على المستخدم صاحب كود الدعوة.", variant: "destructive" });
+                 toast({ title: "كود الدعوة غير صالح", description: "لم يتم العثور على المستخدم صاحب كود الدعوة، ولكن تم إنشاء حسابك بنجاح.", variant: "destructive" });
             }
         }
 
