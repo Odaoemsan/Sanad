@@ -127,16 +127,6 @@ export default function DashboardPage() {
 
   const recentTransactions = transactionsData?.sort((a, b) => new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime()).slice(0, 5) || [];
   
-  const referralLink = user ? `${window.location.origin}/signup?ref=${user.uid}` : "";
-    
-  const copyToClipboard = () => {
-      if (!referralLink) return;
-      navigator.clipboard.writeText(referralLink);
-      toast({
-          title: "تم النسخ إلى الحافظة!",
-          description: "تم نسخ رابط الإحالة الخاص بك.",
-      });
-  };
 
    if (isLoading) {
     return (
@@ -152,10 +142,10 @@ export default function DashboardPage() {
   return (
     <>
       <main className="flex flex-1 flex-col gap-6 p-4 sm:px-6">
-        <h1 className="text-3xl font-bold tracking-tight">لوحة القيادة</h1>
         
         {/* Quick Actions */}
         <div className="w-full">
+            <h2 className="text-lg font-semibold mb-3">إجراءات سريعة</h2>
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
                 <Button asChild variant="outline" className="flex-shrink-0 bg-background/80"><Link href="/dashboard/wallet"><Plus className="ml-2 h-4 w-4"/> إيداع</Link></Button>
                 <Button asChild variant="outline" className="flex-shrink-0 bg-background/80"><Link href="/dashboard/wallet"><Send className="ml-2 h-4 w-4"/> سحب</Link></Button>
@@ -214,7 +204,9 @@ export default function DashboardPage() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                 <Button className="w-full" onClick={copyToClipboard}>دعوة</Button>
+                 <Button className="w-full" asChild>
+                    <Link href="/dashboard/referrals">دعوة</Link>
+                 </Button>
             </CardContent>
         </Card>
 
