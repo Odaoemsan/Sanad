@@ -31,13 +31,13 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Build APK (Debug)
         run: |
-          npx cap add android || true
-          npx cap copy
+          # المجلد موجود الآن، فقط نحتاج للمزامنة
+          npx cap sync android
+          # إعطاء صلاحية التنفيذ لـ Gradle
+          chmod +x android/gradlew
+          # البدء بعملية البناء
           cd android && ./gradlew assembleDebug
 
       - name: Upload APK
