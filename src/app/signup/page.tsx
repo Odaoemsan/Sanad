@@ -27,7 +27,7 @@ import { useAuth, useDatabase } from '@/firebase';
 import { createUserWithEmailAndPassword, updateProfile, UserCredential } from 'firebase/auth';
 import { ref, set, get } from 'firebase/database';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 
@@ -43,7 +43,7 @@ const formSchema = z
     path: ['confirmPassword'],
   });
 
-export default function SignupPage() {
+function SignupForm() {
   const auth = useAuth();
   const database = useDatabase();
   const router = useRouter();
@@ -207,4 +207,12 @@ export default function SignupPage() {
       </Card>
     </div>
   );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignupForm />
+    </Suspense>
+  )
 }
