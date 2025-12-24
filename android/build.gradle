@@ -1,7 +1,13 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
-    
+   buildscript {
+    ext {
+        // اجبار النظام على استخدام إصدار واحد من كوتلن
+        kotlin_version = '1.8.22'
+    }
+}
+ 
     repositories {
         google()
         mavenCentral()
