@@ -71,7 +71,7 @@ export default function DashboardLayout({
       <div className="flex-1 flex flex-col">
           <DashboardHeader />
           {/* Add pb-24 for bottom nav padding */}
-          <div className="flex-grow pb-24 md:pb-4">
+          <div className="flex-grow overflow-y-auto pb-24 md:pb-4">
           {!pathname.startsWith('/dashboard/admin') && <AnnouncementBanner />}
           {children}
         </div>

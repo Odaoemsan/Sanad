@@ -8,15 +8,6 @@ import {
   CardTitle,
   CardFooter
 } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   DollarSign,
@@ -44,9 +35,6 @@ import {
   LineChart,
   Line,
   ResponsiveContainer,
-  XAxis,
-  YAxis,
-  Tooltip
 } from "recharts"
 
 
@@ -66,6 +54,7 @@ const MiniChart = ({ data }: { data: any[] }) => (
                     stroke="hsl(var(--primary))"
                     strokeWidth={2}
                     dot={false}
+                    fill="url(#chartGradient)"
                 />
             </LineChart>
         </ResponsiveContainer>
@@ -143,14 +132,14 @@ export default function DashboardPage() {
     <>
       <main className="flex flex-1 flex-col gap-6 p-4 sm:px-6">
         
-        {/* Quick Actions */}
+        {/* Quick Actions Grid */}
         <div className="w-full">
             <h2 className="text-lg font-semibold mb-3">إجراءات سريعة</h2>
-            <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
-                <Button asChild variant="outline" className="flex-shrink-0 bg-background/80"><Link href="/dashboard/wallet"><Plus className="ml-2 h-4 w-4"/> إيداع</Link></Button>
-                <Button asChild variant="outline" className="flex-shrink-0 bg-background/80"><Link href="/dashboard/wallet"><Send className="ml-2 h-4 w-4"/> سحب</Link></Button>
-                <Button asChild variant="outline" className="flex-shrink-0 bg-background/80"><Link href="/dashboard/referrals"><UserPlus className="ml-2 h-4 w-4"/> دعوة</Link></Button>
-                <Button asChild variant="outline" className="flex-shrink-0 bg-background/80"><Link href="/dashboard/investments"><Briefcase className="ml-2 h-4 w-4"/> استثمار</Link></Button>
+             <div className="grid grid-cols-2 gap-3">
+                <Button asChild variant="outline" className="flex-col h-20 gap-1 text-sm bg-background/80"><Link href="/dashboard/wallet"><Plus className="h-5 w-5"/> <span>إيداع</span></Link></Button>
+                <Button asChild variant="outline" className="flex-col h-20 gap-1 text-sm bg-background/80"><Link href="/dashboard/wallet"><Send className="h-5 w-5"/> <span>سحب</span></Link></Button>
+                <Button asChild variant="outline" className="flex-col h-20 gap-1 text-sm bg-background/80"><Link href="/dashboard/referrals"><UserPlus className="h-5 w-5"/> <span>دعوة</span></Link></Button>
+                <Button asChild variant="outline" className="flex-col h-20 gap-1 text-sm bg-background/80"><Link href="/#plans"><Briefcase className="h-5 w-5"/> <span>استثمار</span></Link></Button>
             </div>
         </div>
 
