@@ -17,13 +17,18 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useDatabase, useDatabaseList, useMemoFirebase } from "@/firebase";
-import { ref, update, get, query, orderByChild, equalTo } from 'firebase/database';
-import type { Transaction, UserProfile } from "@/lib/placeholder-data";
+import { ref, update, get, query, orderByChild, equalTo, push, set } from 'firebase/database';
+import type { Transaction, UserProfile, Referral } from "@/lib/placeholder-data";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { Check, X, Eye, Activity, Inbox } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
+
+
+const L1_COMMISSION_RATE = 0.015; // 1.5%
+const L2_COMMISSION_RATE = 0.01;  // 1%
+
 
 export function AdminDepositsCard() {
   const database = useDatabase();
@@ -48,35 +53,100 @@ export function AdminDepositsCard() {
     }, new Map<string, UserProfile>());
   }, [users]);
   
-  const handleTransaction = async (transaction: Transaction, newStatus: 'Completed' | 'Failed') => {
+ const handleTransaction = async (transaction: Transaction, newStatus: 'Completed' | 'Failed') => {
     if (!database || !transaction.userProfileId || !transaction.id) return;
 
     try {
         const updates: { [key: string]: any } = {};
 
-        // If a deposit is approved, we need to add to the user's balance.
-        if (newStatus === 'Completed') {
-            const userRef = ref(database, `users/${transaction.userProfileId}`);
-            const userSnap = await get(userRef);
-            if (!userSnap.exists()) throw new Error("User not found");
-            const userProfile: UserProfile = userSnap.val();
-            const newBalance = (userProfile.balance || 0) + transaction.amount;
-            updates[`users/${transaction.userProfileId}/balance`] = newBalance;
-        }
-
-        // Always update the transaction status.
+        // Always update the transaction status first.
         updates[`transactions/${transaction.id}/status`] = newStatus;
+
+        // If a deposit is approved, we perform several actions.
+        if (newStatus === 'Completed') {
+            const depositorRef = ref(database, `users/${transaction.userProfileId}`);
+            const depositorSnap = await get(depositorRef);
+            if (!depositorSnap.exists()) throw new Error("Depositing user not found");
+            const depositorProfile: UserProfile = depositorSnap.val();
+
+            // 1. Add deposit amount to the user's balance.
+            const newBalance = (depositorProfile.balance || 0) + transaction.amount;
+            updates[`users/${transaction.userProfileId}/balance`] = newBalance;
+
+            // 2. Handle Referral Bonuses
+            if (depositorProfile.referrerId) {
+                // LEVEL 1
+                const l1ReferrerRef = ref(database, `users/${depositorProfile.referrerId}`);
+                const l1ReferrerSnap = await get(l1ReferrerRef);
+                
+                if (l1ReferrerSnap.exists()) {
+                    const l1ReferrerProfile: UserProfile = l1ReferrerSnap.val();
+                    const l1Bonus = transaction.amount * L1_COMMISSION_RATE;
+                    updates[`users/${l1ReferrerProfile.id}/balance`] = (l1ReferrerProfile.balance || 0) + l1Bonus;
+                    
+                    // Create transaction for L1 bonus
+                    const l1BonusTxRef = push(ref(database, `transactions`));
+                    updates[`transactions/${l1BonusTxRef.key}`] = {
+                        id: l1BonusTxRef.key,
+                        userProfileId: l1ReferrerProfile.id,
+                        type: 'Referral Bonus',
+                        amount: l1Bonus,
+                        status: 'Completed',
+                        transactionDate: new Date().toISOString(),
+                        notes: `Level 1 bonus from ${depositorProfile.email}`
+                    };
+
+                     // Create referral record for L1
+                    const l1ReferralRecordRef = push(ref(database, `users/${l1ReferrerProfile.id}/referrals`));
+                    updates[`users/${l1ReferrerProfile.id}/referrals/${l1ReferralRecordRef.key}`] = {
+                        id: l1ReferralRecordRef.key,
+                        referrerId: l1ReferrerProfile.id,
+                        referredId: depositorProfile.id,
+                        referredUsername: depositorProfile.username,
+                        referralDate: new Date().toISOString(),
+                        bonusAmount: l1Bonus,
+                    };
+
+                    toast({ title: "مكافأة المستوى الأول", description: `تمت إضافة ${l1Bonus.toFixed(2)}$ إلى ${l1ReferrerProfile.email}`});
+
+                    // LEVEL 2
+                    if (l1ReferrerProfile.referrerId) {
+                         const l2ReferrerRef = ref(database, `users/${l1ReferrerProfile.referrerId}`);
+                         const l2ReferrerSnap = await get(l2ReferrerRef);
+
+                         if (l2ReferrerSnap.exists()) {
+                             const l2ReferrerProfile: UserProfile = l2ReferrerSnap.val();
+                             const l2Bonus = transaction.amount * L2_COMMISSION_RATE;
+                             updates[`users/${l2ReferrerProfile.id}/balance`] = (l2ReferrerProfile.balance || 0) + l2Bonus;
+
+                             // Create transaction for L2 bonus
+                             const l2BonusTxRef = push(ref(database, `transactions`));
+                             updates[`transactions/${l2BonusTxRef.key}`] = {
+                                id: l2BonusTxRef.key,
+                                userProfileId: l2ReferrerProfile.id,
+                                type: 'Referral Bonus',
+                                amount: l2Bonus,
+                                status: 'Completed',
+                                transactionDate: new Date().toISOString(),
+                                notes: `Level 2 bonus from ${depositorProfile.email}`
+                             };
+                             toast({ title: "مكافأة المستوى الثاني", description: `تمت إضافة ${l2Bonus.toFixed(2)}$ إلى ${l2ReferrerProfile.email}`});
+                         }
+                    }
+                }
+            }
+        }
         
         await update(ref(database), updates);
 
-      toast({
-        title: "تم تحديث طلب الإيداع",
-        description: `تم تحديث حالة الطلب إلى ${newStatus}.`
-      });
+        toast({
+            title: "تم تحديث طلب الإيداع",
+            description: `تم تحديث حالة الطلب إلى ${newStatus}.`
+        });
 
     } catch (error: any) {
-      console.error("Error handling deposit:", error);
-      toast({ title: "خطأ", description: error.message || "فشل تحديث طلب الإيداع.", variant: "destructive" });
+        console.error("Error handling deposit:", error);
+        toast({ title: "خطأ", description: error.message || "فشل تحديث طلب الإيداع.", variant: "destructive" });
     }
   };
   
