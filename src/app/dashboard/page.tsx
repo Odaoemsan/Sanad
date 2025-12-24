@@ -50,6 +50,8 @@ function ReferralCard() {
     const { data: referralsData } = useDatabaseList<Referral>(referralsRef);
     
     const referralLink = user ? `${window.location.origin}/signup?ref=${user.uid}` : "";
+    
+    // This was the source of the error. Accessing .length on null.
     const totalReferrals = referralsData?.length || 0;
     const totalCommission = referralsData?.reduce((sum, ref) => sum + (ref.bonusAmount || 0), 0) || 0;
 
