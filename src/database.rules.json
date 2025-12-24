@@ -1,38 +1,9 @@
 {
   "rules": {
+    ".read": "true",
+    ".write": "true",
     "users": {
-      "$uid": {
-        ".read": "auth != null && (auth.uid == $uid || auth.uid == 'eQwg5buDT7b0dtU391R8LZXBtjs1')",
-        ".write": "auth != null && (auth.uid == $uid || auth.uid == 'eQwg5buDT7b0dtU391R8LZXBtjs1')"
-      },
-      ".read": "auth != null && auth.uid == 'eQwg5buDT7b0dtU391R8LZXBtjs1'",
       ".indexOn": ["referralCode"]
-    },
-    "investment_plans": {
-      ".read": true,
-      ".write": "auth != null && auth.uid == 'eQwg5buDT7b0dtU391R8LZXBtjs1'"
-    },
-    "transactions": {
-      ".read": "auth != null",
-      ".indexOn": ["userProfileId", "type", "status"],
-      "$transactionId": {
-        ".read": "auth != null && (data.child('userProfileId').val() == auth.uid || auth.uid == 'eQwg5buDT7b0dtU391R8LZXBtjs1')",
-        ".write": "auth != null && ((newData.child('userProfileId').val() == auth.uid) || auth.uid == 'eQwg5buDT7b0dtU391R8LZXBtjs1')"
-      }
-    },
-    "announcement": {
-      ".read": true,
-      ".write": "auth != null && auth.uid == 'eQwg5buDT7b0dtU391R8LZXBtjs1'"
-    },
-    "settings": {
-      ".read": true,
-      ".write": "auth != null && auth.uid == 'eQwg5buDT7b0dtU391R8LZXBtjs1'",
-      "telegramLink": {
-        ".read": true
-      },
-      "depositAddress": {
-        ".read": true
-      }
     }
   }
 }
