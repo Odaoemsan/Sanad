@@ -7,12 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Wallet, CreditCard, Copy, Upload } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, Suspense } from "react";
 import { useUser, useDatabase, useDatabaseObject, useMemoFirebase, useAuth, useDatabaseList } from '@/firebase';
 import { ref, push, set, runTransaction as runDBTransaction } from 'firebase/database';
 import type { UserProfile, Investment, Transaction } from "@/lib/placeholder-data";
 import { EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSearchParams } from "next/navigation";
 
 
 const MIN_WITHDRAWAL_AMOUNT = 50;
@@ -289,9 +290,11 @@ function WithdrawForm() {
     )
 }
 
-export default function WalletPage() {
+function WalletPageContent() {
     const { user } = useUser();
     const database = useDatabase();
+    const searchParams = useSearchParams();
+    const tab = searchParams.get('tab');
 
     const userProfileRef = useMemoFirebase(() => {
         if (!database || !user) return null;
@@ -311,78 +314,85 @@ export default function WalletPage() {
     const availableForWithdrawal = totalBalance;
 
     const isLoading = !user || !database || isProfileLoading || areInvestmentsLoading;
+    const defaultTab = tab === 'withdraw' ? 'withdraw' : 'deposit';
 
     return (
-        <>
-            <main className="flex flex-1 flex-col gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div className="lg:col-span-2">
-                        <Tabs defaultValue="deposit">
-                            <TabsList className="grid w-full grid-cols-2">
-                                <TabsTrigger value="deposit">إيداع</TabsTrigger>
-                                <TabsTrigger value="withdraw">سحب</TabsTrigger>
-                            </TabsList>
-                            <TabsContent value="deposit">
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="flex items-center gap-2">
-                                            <CreditCard />
-                                            إيداع يدوي
-                                        </CardTitle>
-                                        <CardDescription>أضف أموالاً إلى حسابك لبدء الاستثمار. تتم مراجعة الإيداعات يدويًا.</CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <DepositForm />
-                                    </CardContent>
-                                </Card>
-                            </TabsContent>
-                            <TabsContent value="withdraw">
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle>سحب الأموال</CardTitle>
-                                        <CardDescription>حوّل أرباحك إلى محفظتك الشخصية. تتم معالجة عمليات السحب يدويًا للأمان.</CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <WithdrawForm />
-                                    </CardContent>
-                                </Card>
-                            </TabsContent>
-                        </Tabs>
-                    </div>
-                     <div className="lg:col-span-1">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>ملخص الرصيد</CardTitle>
-                                <CardDescription>رصيد حسابك الحالي.</CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                {isLoading ? (
-                                    <div className="space-y-4">
-                                        <Skeleton className="h-8 w-full" />
-                                        <Skeleton className="h-6 w-3/4" />
-                                        <Skeleton className="h-6 w-2/3" />
-                                    </div>
-                                ) : (
-                                <>
-                                    <div className="flex justify-between items-baseline">
-                                        <span className="text-muted-foreground">إجمالي الرصيد</span>
-                                        <span className="text-2xl font-bold">${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                    </div>
-                                    <div className="flex justify-between items-baseline">
-                                        <span className="text-muted-foreground">متاح للسحب</span>
-                                        <span className="text-lg font-medium text-green-600">${availableForWithdrawal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                    </div>
-                                    <div className="flex justify-between items-baseline">
-                                        <span className="text-muted-foreground">مستثمر حاليًا</span>
-                                        <span className="text-lg font-medium">${totalInvested.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                    </div>
-                                </>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </div>
+        <main className="flex flex-1 flex-col gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2">
+                    <Tabs defaultValue={defaultTab}>
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="deposit">إيداع</TabsTrigger>
+                            <TabsTrigger value="withdraw">سحب</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="deposit">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <CreditCard />
+                                        إيداع يدوي
+                                    </CardTitle>
+                                    <CardDescription>أضف أموالاً إلى حسابك لبدء الاستثمار. تتم مراجعة الإيداعات يدويًا.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <DepositForm />
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                        <TabsContent value="withdraw">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>سحب الأموال</CardTitle>
+                                    <CardDescription>حوّل أرباحك إلى محفظتك الشخصية. تتم معالجة عمليات السحب يدويًا للأمان.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <WithdrawForm />
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                    </Tabs>
                 </div>
-            </main>
-        </>
+                 <div className="lg:col-span-1">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>ملخص الرصيد</CardTitle>
+                            <CardDescription>رصيد حسابك الحالي.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {isLoading ? (
+                                <div className="space-y-4">
+                                    <Skeleton className="h-8 w-full" />
+                                    <Skeleton className="h-6 w-3/4" />
+                                    <Skeleton className="h-6 w-2/3" />
+                                </div>
+                            ) : (
+                            <>
+                                <div className="flex justify-between items-baseline">
+                                    <span className="text-muted-foreground">إجمالي الرصيد</span>
+                                    <span className="text-2xl font-bold">${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                                <div className="flex justify-between items-baseline">
+                                    <span className="text-muted-foreground">متاح للسحب</span>
+                                    <span className="text-lg font-medium text-green-600">${availableForWithdrawal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                                <div className="flex justify-between items-baseline">
+                                    <span className="text-muted-foreground">مستثمر حاليًا</span>
+                                    <span className="text-lg font-medium">${totalInvested.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                            </>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        </main>
+    )
+}
+
+export default function WalletPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <WalletPageContent />
+        </Suspense>
     )
 }

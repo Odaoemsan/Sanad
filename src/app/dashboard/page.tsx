@@ -135,9 +135,9 @@ export default function DashboardPage() {
         {/* Quick Actions Grid */}
         <div className="w-full">
             <h2 className="text-lg font-semibold mb-3">إجراءات سريعة</h2>
-             <div className="grid grid-cols-2 gap-3">
-                <Button asChild variant="outline" className="flex-col h-20 gap-1 text-sm bg-background/80"><Link href="/dashboard/wallet"><Plus className="h-5 w-5"/> <span>إيداع</span></Link></Button>
-                <Button asChild variant="outline" className="flex-col h-20 gap-1 text-sm bg-background/80"><Link href="/dashboard/wallet"><Send className="h-5 w-5"/> <span>سحب</span></Link></Button>
+             <div className="grid grid-cols-4 gap-3">
+                <Button asChild variant="outline" className="flex-col h-20 gap-1 text-sm bg-background/80"><Link href="/dashboard/wallet?tab=deposit"><Plus className="h-5 w-5"/> <span>إيداع</span></Link></Button>
+                <Button asChild variant="outline" className="flex-col h-20 gap-1 text-sm bg-background/80"><Link href="/dashboard/wallet?tab=withdraw"><Send className="h-5 w-5"/> <span>سحب</span></Link></Button>
                 <Button asChild variant="outline" className="flex-col h-20 gap-1 text-sm bg-background/80"><Link href="/dashboard/referrals"><UserPlus className="h-5 w-5"/> <span>دعوة</span></Link></Button>
                 <Button asChild variant="outline" className="flex-col h-20 gap-1 text-sm bg-background/80"><Link href="/#plans"><Briefcase className="h-5 w-5"/> <span>استثمار</span></Link></Button>
             </div>
