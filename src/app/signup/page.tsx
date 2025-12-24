@@ -74,6 +74,7 @@ function SignupForm() {
       const userCredential: UserCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const authUser = userCredential.user;
 
+      // This should always run now
       if (authUser) {
         await updateProfile(authUser, { displayName: values.fullName });
 
@@ -99,25 +100,19 @@ function SignupForm() {
                 userProfileData.referrerId = referrerId;
                 toast({ title: "تم تسجيل الإحالة!", description: "تم ربط حسابك بالشخص الذي قام بدعوتك." });
             } else {
-                 console.warn("Referral code not found:", values.referralCode);
                  toast({ title: "كود الدعوة غير صالح", description: "لم يتم العثور على المستخدم صاحب كود الدعوة، ولكن تم إنشاء حسابك بنجاح.", variant: "destructive" });
             }
         }
 
         const profileRef = ref(database, `users/${authUser.uid}`);
         await set(profileRef, userProfileData);
-
-        // Redirect is handled by the useEffect watching the user state
       }
 
     } catch (error: any) {
       console.error('Error signing up:', error);
        if (error.code === 'auth/email-already-in-use') {
           form.setError('email', { type: 'manual', message: 'هذا البريد الإلكتروني مستخدم بالفعل.' });
-       } else if (error.code === 'auth/invalid-credential') {
-          form.setError('root', { type: 'manual', message: 'بيانات الاعتماد المقدمة غير صالحة.' });
-       }
-       else {
+       } else {
         form.setError('root', { type: 'manual', message: 'حدث خطأ غير متوقع. الرجاء المحاولة مرة أخرى.' });
       }
     }
