@@ -10,14 +10,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { LogOut, User, Settings, LifeBuoy, Bell } from 'lucide-react';
-import { SidebarTrigger } from '@/components/ui/sidebar';
 import Link from 'next/link';
 import { useAuth, useUser, useDatabase, useDatabaseObject, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { ref } from 'firebase/database';
 
-export function DashboardHeader() {
+export function DashboardHeader({ pageTitle }: { pageTitle?: string }) {
   const auth = useAuth();
   const { user } = useUser();
   const router = useRouter();
@@ -40,7 +39,7 @@ export function DashboardHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 bg-transparent px-4 sm:px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b bg-background/80 px-4 sm:px-6 backdrop-blur-lg">
       {/* Profile/Settings Icon */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -80,9 +79,9 @@ export function DashboardHeader() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* App Name */}
+      {/* App Name or Page Title */}
       <div className="text-xl font-bold text-foreground">
-        SNAD
+        {pageTitle || "SNAD"}
       </div>
 
       {/* Notifications Icon */}

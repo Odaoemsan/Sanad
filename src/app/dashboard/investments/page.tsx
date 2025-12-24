@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, Calendar, Clock, DollarSign, TrendingUp, Briefcase, Ban, AlertTriangle } from "lucide-react";
@@ -124,7 +123,6 @@ export default function InvestmentsPage() {
     if (isLoading) {
         return (
              <>
-                <DashboardHeader pageTitle="استثماراتي" />
                 <main className="flex flex-1 flex-col items-center justify-center gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
                     <Briefcase className="h-16 w-16 text-primary animate-pulse" />
                     <p className="text-muted-foreground">جاري تحميل استثماراتك...</p>
@@ -135,7 +133,6 @@ export default function InvestmentsPage() {
 
     return (
         <>
-            <DashboardHeader pageTitle="استثماراتي" />
             <main className="flex flex-1 flex-col gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
                 {activeInvestment ? (
                     <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 max-w-4xl mx-auto">

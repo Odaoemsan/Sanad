@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -263,7 +262,6 @@ export default function DailyProfitPage() {
 
     return (
         <>
-            <DashboardHeader pageTitle="الربح اليومي" />
             <main className="flex flex-1 flex-col gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
                 <Card className="overflow-hidden">
                     <CardHeader className="bg-muted/30">

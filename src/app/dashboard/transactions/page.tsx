@@ -1,6 +1,5 @@
 'use client';
 
-import { DashboardHeader } from "@/components/layout/dashboard-header";
 import {
   Card,
   CardContent,
@@ -69,7 +68,6 @@ export default function TransactionsPage() {
 
   return (
     <>
-      <DashboardHeader pageTitle="المعاملات" />
       <main className="flex flex-1 flex-col gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
         <Card>
           <CardHeader className="flex flex-row items-center">

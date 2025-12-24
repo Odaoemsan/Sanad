@@ -1,6 +1,5 @@
 'use client';
 
-import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -45,7 +44,6 @@ export default function ReferralsPage() {
 
     return (
         <>
-            <DashboardHeader pageTitle="برنامج الإحالة" />
             <main className="flex flex-1 flex-col gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
                 {isLoading || !user || !database ? (
                      <div className="flex items-center justify-center p-10">
