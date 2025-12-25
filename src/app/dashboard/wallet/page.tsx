@@ -122,7 +122,7 @@ function DepositForm() {
                         onChange={(e) => setTransactionId(e.target.value)} 
                         required
                     />
-                     <p className="text-xs text-muted-foreground">يرجى لصق معرّف المعاملة (TxID) من منصة الإرسال.</p>
+                     <p className="text-xs text-muted-foreground">يرجى لصق معرّف المعاملة (TxID) من منصة الإرسال. يمكنك الحصول على هذا الرمز من المنصة التي أرسلت منها الأموال، أو تجده في إثبات عملية الإيداع.</p>
                 </div>
                 
                 <Button type="submit" className="w-full" disabled={isSubmitting || !amount || !transactionId}>
@@ -403,6 +403,3 @@ export default function WalletPage() {
         </Suspense>
     )
 }
-
-    
-    
