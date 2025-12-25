@@ -36,7 +36,24 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
     const { data: allPlans, isLoading: isLoadingPlans, error: plansError } = useDatabaseList<InvestmentPlan>(allPlansRef);
     const { data: allBounties, isLoading: isLoadingBounties, error: bountiesError } = useDatabaseList<Bounty>(allBountiesRef);
     const { data: allSubmissions, isLoading: isLoadingSubmissions, error: submissionsError } = useDatabaseList<BountySubmission>(allSubmissionsRef);
-    const { data: allRanks, isLoading: isLoadingRanks, error: ranksError } = useDatabaseList<PartnerRank>(allRanksRef);
+    const { data: allRanksData, isLoading: isLoadingRanks, error: ranksError } = useDatabaseList<PartnerRank>(allRanksRef);
+    
+    // The ranks are stored as an object with keys, not an array. We need to convert it.
+    const allRanks = useMemo(() => {
+        if (!allRanksData) return null;
+        // The hook might return an array if there are numeric keys, or an object. 
+        // We handle both cases to be safe, converting an object to an array of its values.
+        if (Array.isArray(allRanksData)) {
+            return allRanksData;
+        }
+        // If it's an object, transform it into an array
+        return Object.keys(allRanksData).map(key => ({
+            id: key,
+            // @ts-ignore
+            ...allRanksData[key]
+        }));
+    }, [allRanksData]);
+
 
     // Combine loading states and errors
     const isLoading = isLoadingUsers || isLoadingTxs || isLoadingPlans || isLoadingBounties || isLoadingSubmissions || isLoadingRanks;
