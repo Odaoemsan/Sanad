@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   Card,
   CardContent,
@@ -15,177 +16,127 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { TrendingUp, TrendingDown, Activity, Bitcoin } from 'lucide-react'
-import {
-  LineChart,
-  Line,
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-} from "recharts"
+import { TrendingUp, TrendingDown, Activity, RefreshCw } from 'lucide-react'
+import Image from 'next/image'
 
-const marketData = [
-  {
-    name: 'Bitcoin',
-    symbol: 'BTC',
-    price: 61345.78,
-    change: -1.25,
-    marketCap: 1.21, // In Trillions
-    logo: 'btc',
-    chartData: [
-      { value: 62000 },
-      { value: 61800 },
-      { value: 62100 },
-      { value: 61500 },
-      { value: 61345 },
-      { value: 61450 },
-      { value: 61200 },
-    ]
-  },
-  {
-    name: 'Ethereum',
-    symbol: 'ETH',
-    price: 2988.45,
-    change: 2.33,
-    marketCap: 358.9, // In Billions
-    logo: 'eth',
-     chartData: [
-      { value: 2900 },
-      { value: 2950 },
-      { value: 2930 },
-      { value: 3000 },
-      { value: 2988 },
-      { value: 3010 },
-      { value: 2995 },
-    ]
-  },
-  {
-    name: 'Tether',
-    symbol: 'USDT',
-    price: 1.0,
-    change: 0.01,
-    marketCap: 112.5, // In Billions
-    logo: 'usdt',
-     chartData: [
-      { value: 1.00 },
-      { value: 1.001 },
-      { value: 0.999 },
-      { value: 1.00 },
-      { value: 1.00 },
-      { value: 1.002 },
-      { value: 1.001 },
-    ]
-  },
-  {
-    name: 'BNB',
-    symbol: 'BNB',
-    price: 571.12,
-    change: 0.55,
-    marketCap: 84.2, // In Billions
-    logo: 'bnb',
-     chartData: [
-      { value: 560 },
-      { value: 565 },
-      { value: 575 },
-      { value: 570 },
-      { value: 571 },
-      { value: 568 },
-      { value: 572 },
-    ]
-  },
-  {
-    name: 'Solana',
-    symbol: 'SOL',
-    price: 144.59,
-    change: -3.1,
-    marketCap: 66.7, // In Billions
-    logo: 'sol',
-     chartData: [
-      { value: 150 },
-      { value: 148 },
-      { value: 145 },
-      { value: 146 },
-      { value: 144 },
-      { value: 142 },
-      { value: 143 },
-    ]
-  },
-]
-
-const MiniChart = ({ data, color }: { data: any[]; color: string }) => (
-    <div className="h-12 w-28">
-        <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
-                 <defs>
-                    <linearGradient id={`chart-gradient-${color.replace('#','_')}`} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={color} stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor={color} stopOpacity={0}/>
-                    </linearGradient>
-                </defs>
-                <Area
-                    type="monotone"
-                    dataKey="value"
-                    stroke={color}
-                    strokeWidth={2}
-                    fill={`url(#chart-gradient-${color.replace('#','_')})`}
-                    dot={false}
-                />
-            </AreaChart>
-        </ResponsiveContainer>
-    </div>
-);
-
-
-const CryptoIcon = ({ symbol }: { symbol: string }) => {
-    return (
-        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center font-bold text-lg">
-            {symbol.charAt(0)}
-        </div>
-    )
+type CryptoData = {
+  id: string;
+  symbol: string;
+  name: string;
+  image: string;
+  current_price: number;
+  price_change_percentage_24h: number;
+  market_cap: number;
 }
 
+const COIN_IDS = 'bitcoin,ethereum,tether,solana,binancecoin';
+const API_URL = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${COIN_IDS}`;
+
 export default function MarketsPage() {
-  const featuredCoin = marketData[0];
-  const otherCoins = marketData.slice(1);
+  const [data, setData] = useState<CryptoData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+
+  const fetchData = useCallback(async () => {
+    if(!isLoading) setIsRefreshing(true);
+    try {
+      const response = await fetch(API_URL);
+      if (!response.ok) {
+        throw new Error('فشل جلب البيانات من API. الرجاء المحاولة مرة أخرى.');
+      }
+      const result: CryptoData[] = await response.json();
+      setData(result);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || 'حدث خطأ غير متوقع.');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, [isLoading]);
+
+  useEffect(() => {
+    fetchData(); // Fetch on initial load
+    const interval = setInterval(fetchData, 60000); // Refresh every 60 seconds
+    return () => clearInterval(interval); // Cleanup on unmount
+  }, [fetchData]);
+  
+  const { featuredCoin, otherCoins } = useMemo(() => {
+    const btc = data.find(c => c.id === 'bitcoin');
+    const others = data.filter(c => c.id !== 'bitcoin');
+    return { featuredCoin: btc, otherCoins: others };
+  }, [data]);
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
-        <div className="flex items-center gap-4">
-            <Activity className="h-8 w-8 text-primary" />
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">الأسواق</h1>
+        <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+                <Activity className="h-8 w-8 text-primary" />
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">الأسواق</h1>
+            </div>
+             <Button
+                variant="outline"
+                size="icon"
+                onClick={() => fetchData()}
+                disabled={isRefreshing || isLoading}
+                className="h-9 w-9"
+            >
+                <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+            </Button>
         </div>
 
       <Card className="card-glass overflow-hidden bg-gradient-to-br from-primary/80 to-blue-700 text-primary-foreground">
         <CardHeader>
-          <div className="flex items-center gap-4">
-            <CryptoIcon symbol={featuredCoin.symbol} />
-            <div>
-              <CardTitle className="text-2xl">{featuredCoin.name}</CardTitle>
-              <CardDescription className="text-white/80">{featuredCoin.symbol}</CardDescription>
-            </div>
-          </div>
+           {isLoading || !featuredCoin ? (
+                <div className="flex items-center gap-4">
+                    <Skeleton className="h-12 w-12 rounded-full" />
+                    <div className="space-y-2">
+                        <Skeleton className="h-6 w-24" />
+                        <Skeleton className="h-4 w-12" />
+                    </div>
+                </div>
+            ) : (
+                <div className="flex items-center gap-4">
+                    <Image src={featuredCoin.image} alt={featuredCoin.name} width={48} height={48} className="rounded-full bg-white/20 p-1" />
+                    <div>
+                        <CardTitle className="text-2xl">{featuredCoin.name}</CardTitle>
+                        <CardDescription className="text-white/80">{featuredCoin.symbol.toUpperCase()}</CardDescription>
+                    </div>
+                </div>
+            )}
         </CardHeader>
         <CardContent>
-          <div className="flex justify-between items-end">
-            <div className="text-4xl font-bold">
-              ${featuredCoin.price.toLocaleString('en-US')}
-            </div>
-            <div
-              className={cn(
-                'flex items-center gap-1 text-lg font-semibold',
-                featuredCoin.change > 0 ? 'text-green-300' : 'text-red-300'
-              )}
-            >
-              {featuredCoin.change > 0 ? (
-                <TrendingUp className="h-5 w-5" />
-              ) : (
-                <TrendingDown className="h-5 w-5" />
-              )}
-              <span>{featuredCoin.change.toFixed(2)}%</span>
-            </div>
-          </div>
+            {isLoading || !featuredCoin ? (
+                <div className="flex justify-between items-end">
+                    <Skeleton className="h-10 w-48" />
+                    <Skeleton className="h-6 w-20" />
+                </div>
+             ) : (
+                <div className="flex justify-between items-end">
+                    <div className="text-4xl font-bold">
+                    ${featuredCoin.current_price.toLocaleString('en-US')}
+                    </div>
+                    <div
+                    className={cn(
+                        'flex items-center gap-1 text-lg font-semibold',
+                        featuredCoin.price_change_percentage_24h > 0 ? 'text-green-300' : 'text-red-300'
+                    )}
+                    >
+                    {featuredCoin.price_change_percentage_24h > 0 ? (
+                        <TrendingUp className="h-5 w-5" />
+                    ) : (
+                        <TrendingDown className="h-5 w-5" />
+                    )}
+                    <span>{featuredCoin.price_change_percentage_24h.toFixed(2)}%</span>
+                    </div>
+                </div>
+            )}
         </CardContent>
       </Card>
 
@@ -204,37 +155,50 @@ export default function MarketsPage() {
                   <TableHead>العملة</TableHead>
                   <TableHead className="text-left">السعر</TableHead>
                   <TableHead className="text-center">التغير (24س)</TableHead>
-                  <TableHead className="text-left hidden sm:table-cell">مخطط (24س)</TableHead>
+                  <TableHead className="text-left hidden sm:table-cell">القيمة السوقية</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {otherCoins.map((coin) => (
-                  <TableRow key={coin.symbol}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <CryptoIcon symbol={coin.symbol} />
-                        <div>
-                          <div className="font-bold">{coin.name}</div>
-                          <div className="text-xs text-muted-foreground">{coin.symbol}</div>
+                {isLoading ? (
+                    Array.from({length: 4}).map((_, i) => (
+                         <TableRow key={i}>
+                            <TableCell><div className="flex items-center gap-3"><Skeleton className="h-10 w-10 rounded-full" /><div className="space-y-1"><Skeleton className="h-4 w-20" /><Skeleton className="h-3 w-10" /></div></div></TableCell>
+                            <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                            <TableCell className="text-center"><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
+                            <TableCell className="hidden sm:table-cell"><Skeleton className="h-5 w-28" /></TableCell>
+                        </TableRow>
+                    ))
+                ) : error ? (
+                    <TableRow><TableCell colSpan={4} className="text-center text-destructive">{error}</TableCell></TableRow>
+                ) : (
+                    otherCoins.map((coin) => (
+                    <TableRow key={coin.id}>
+                        <TableCell>
+                        <div className="flex items-center gap-3">
+                            <Image src={coin.image} alt={coin.name} width={40} height={40} className="rounded-full bg-white/20 p-1" />
+                            <div>
+                            <div className="font-bold">{coin.name}</div>
+                            <div className="text-xs text-muted-foreground">{coin.symbol.toUpperCase()}</div>
+                            </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-left font-medium">
-                      ${coin.price.toLocaleString('en-US')}
-                    </TableCell>
-                    <TableCell
-                      className={cn(
-                        'text-center font-semibold',
-                        coin.change >= 0 ? 'text-green-600' : 'text-red-600'
-                      )}
-                    >
-                      {coin.change.toFixed(2)}%
-                    </TableCell>
-                    <TableCell className="text-left hidden sm:table-cell">
-                      <MiniChart data={coin.chartData} color={coin.change >= 0 ? '#16a34a' : '#dc2626'} />
-                    </TableCell>
-                  </TableRow>
-                ))}
+                        </TableCell>
+                        <TableCell className="text-left font-medium">
+                        ${coin.current_price.toLocaleString('en-US')}
+                        </TableCell>
+                        <TableCell
+                        className={cn(
+                            'text-center font-semibold',
+                            coin.price_change_percentage_24h >= 0 ? 'text-green-600' : 'text-red-600'
+                        )}
+                        >
+                        {coin.price_change_percentage_24h.toFixed(2)}%
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell font-mono">
+                            ${(coin.market_cap / 1_000_000_000).toFixed(2)}B
+                        </TableCell>
+                    </TableRow>
+                    ))
+                )}
               </TableBody>
             </Table>
           </div>
