@@ -18,7 +18,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Download, Activity, Eye } from "lucide-react";
+import { Download, Activity } from "lucide-react";
 import { useUser, useDatabase, useDatabaseList, useMemoFirebase } from "@/firebase";
 import { ref, query, orderByChild, equalTo } from 'firebase/database';
 import type { Transaction } from "@/lib/placeholder-data";
@@ -136,20 +136,9 @@ export default function TransactionsPage() {
                       </TableCell>
                       <TableCell>{format(new Date(transaction.transactionDate), 'yyyy-MM-dd')}</TableCell>
                       <TableCell>
-                        {transaction.type === 'Deposit' && transaction.depositProof ? (
-                             <Button
-                              variant="outline"
-                              size="sm"
-                              asChild
-                            >
-                               <a href={transaction.depositProof} target="_blank" rel="noopener noreferrer">
-                                    <Eye className="ml-2 h-4 w-4" />
-                                    عرض الإثبات
-                               </a>
-                            </Button>
-                        ) : (
-                            <span className="font-mono text-xs text-muted-foreground">{transaction.id.substring(0,10)}...</span>
-                        )}
+                         <p className="font-mono text-xs text-muted-foreground max-w-[100px] truncate" title={transaction.transactionId || transaction.id}>
+                            {transaction.transactionId || transaction.id}
+                        </p>
                       </TableCell>
                     </TableRow>
                   )) : (

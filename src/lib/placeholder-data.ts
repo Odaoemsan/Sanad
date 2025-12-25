@@ -40,7 +40,7 @@ export type Transaction = {
   investmentId?: string;
   withdrawAddress?: string; // For withdrawal
   notes?: string; // For admin adjustments
-  depositProof?: string; // Data URI for deposit proof image
+  transactionId?: string; // For deposit TxID
 };
 
 export type Referral = {

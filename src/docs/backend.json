@@ -184,9 +184,9 @@
           "type": "string",
           "description": "The status of the transaction (e.g., Completed, Pending, Failed)."
         },
-        "depositProof": {
+        "transactionId": {
           "type": "string",
-          "description": "Data URI of the uploaded deposit proof image."
+          "description": "External transaction ID (TxID) for deposit verification."
         },
         "withdrawAddress": {
           "type": "string",

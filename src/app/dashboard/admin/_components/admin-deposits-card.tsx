@@ -20,7 +20,7 @@ import { useDatabase, useDatabaseList, useMemoFirebase } from "@/firebase";
 import { ref, update, get, push } from 'firebase/database';
 import type { Transaction, UserProfile } from "@/lib/placeholder-data";
 import { Button } from "@/components/ui/button";
-import { Check, X, Inbox, Activity, Eye } from "lucide-react";
+import { Check, X, Inbox, Activity } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -60,7 +60,9 @@ export function AdminDepositsCard() {
             const depositorSnap = await get(depositorRef);
             if (!depositorSnap.exists()) {
                  toast({ title: "خطأ فادح", description: `لم يتم العثور على المستخدم صاحب المعرف ${transaction.userProfileId}. قد يكون الحساب قد تم حذفه.`, variant: 'destructive'});
-                 return; // Do not fail transaction, allow admin to decide.
+                 // Do not fail the transaction, allow admin to investigate and decide.
+                 // The transaction will remain in pending state.
+                 return;
             }
             const depositorProfile: UserProfile = { ...depositorSnap.val(), id: depositorSnap.key };
 
@@ -172,7 +174,7 @@ export function AdminDepositsCard() {
                 <TableRow>
                   <TableHead>اسم المستخدم</TableHead>
                   <TableHead>المبلغ</TableHead>
-                  <TableHead>الإثبات</TableHead>
+                  <TableHead>معرف المعاملة (TxID)</TableHead>
                   <TableHead>الحالة</TableHead>
                   <TableHead>الإجراءات</TableHead>
                 </TableRow>
@@ -183,20 +185,9 @@ export function AdminDepositsCard() {
                     <TableCell className="font-medium text-xs">{usersMap.get(tx.userProfileId) || '(مستخدم غير موجود)'}</TableCell>
                     <TableCell className="font-bold">${tx.amount.toFixed(2)}</TableCell>
                     <TableCell>
-                      {tx.depositProof ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          asChild
-                        >
-                           <a href={tx.depositProof} target="_blank" rel="noopener noreferrer">
-                                <Eye className="ml-2 h-4 w-4" />
-                                عرض
-                           </a>
-                        </Button>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">لا يوجد</span>
-                      )}
+                      <p className="font-mono text-xs max-w-[150px] truncate" title={tx.transactionId}>
+                        {tx.transactionId || 'N/A'}
+                      </p>
                     </TableCell>
                      <TableCell>
                         <Badge
