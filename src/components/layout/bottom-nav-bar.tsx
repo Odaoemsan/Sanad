@@ -5,12 +5,13 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useUser } from '@/firebase';
-import { Home, Briefcase, Wallet, Zap, LogIn, UserPlus, ArrowLeftRight, User } from 'lucide-react';
+import { Home, Briefcase, Wallet, Zap, LogIn, UserPlus, ArrowLeftRight, User, TrendingUp } from 'lucide-react';
 import { useSidebar } from '@/components/ui/sidebar';
 
 const loggedInNavItems = [
   { href: '/dashboard', label: 'الرئيسية', icon: Home },
   { href: '/dashboard/investments', label: 'استثماري', icon: Briefcase },
+  { href: '/dashboard/markets', label: 'الأسواق', icon: TrendingUp },
   { href: '/dashboard/trade', label: 'الربح اليومي', icon: Zap },
   { href: '/dashboard/settings', label: 'حسابي', icon: User },
 ];
@@ -43,7 +44,7 @@ export function BottomNavBar() {
   }
   
   const items = !isUserLoading && user ? loggedInNavItems : loggedOutNavItems;
-  const gridCols = !isUserLoading && user ? 'grid-cols-4' : 'grid-cols-4';
+  const gridCols = !isUserLoading && user ? 'grid-cols-5' : 'grid-cols-4';
 
   return (
     <div className="fixed bottom-0 left-0 z-50 w-full h-20 bg-background/80 backdrop-blur-lg border-t border-border/10" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>

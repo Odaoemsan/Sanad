@@ -18,12 +18,14 @@ import {
   MountainIcon,
   Shield,
   Zap,
+  TrendingUp,
 } from 'lucide-react';
 import { useUser } from '@/firebase';
 
 const navItems = [
   { href: '/dashboard', label: 'لوحة القيادة', icon: LayoutDashboard },
   { href: '/dashboard/investments', label: 'استثماراتي', icon: Briefcase },
+  { href: '/dashboard/markets', label: 'الأسواق', icon: TrendingUp },
   { href: '/dashboard/trade', label: 'الربح اليومي', icon: Zap },
   { href: '/dashboard/transactions', label: 'المعاملات', icon: ArrowLeftRight },
   { href: '/dashboard/referrals', label: 'الإحالات', icon: Users },
