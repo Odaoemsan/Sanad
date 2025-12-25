@@ -22,6 +22,8 @@ import {
   LineChart,
   Line,
   ResponsiveContainer,
+  AreaChart,
+  Area,
 } from "recharts"
 
 const marketData = [
@@ -38,6 +40,8 @@ const marketData = [
       { value: 62100 },
       { value: 61500 },
       { value: 61345 },
+      { value: 61450 },
+      { value: 61200 },
     ]
   },
   {
@@ -53,6 +57,8 @@ const marketData = [
       { value: 2930 },
       { value: 3000 },
       { value: 2988 },
+      { value: 3010 },
+      { value: 2995 },
     ]
   },
   {
@@ -68,6 +74,8 @@ const marketData = [
       { value: 0.999 },
       { value: 1.00 },
       { value: 1.00 },
+      { value: 1.002 },
+      { value: 1.001 },
     ]
   },
   {
@@ -83,6 +91,8 @@ const marketData = [
       { value: 575 },
       { value: 570 },
       { value: 571 },
+      { value: 568 },
+      { value: 572 },
     ]
   },
   {
@@ -98,22 +108,31 @@ const marketData = [
       { value: 145 },
       { value: 146 },
       { value: 144 },
+      { value: 142 },
+      { value: 143 },
     ]
   },
 ]
 
 const MiniChart = ({ data, color }: { data: any[]; color: string }) => (
-    <div className="h-10 w-24">
+    <div className="h-12 w-28">
         <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 5, right: 0, left: 0, bottom: 5 }}>
-                <Line
+            <AreaChart data={data} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
+                 <defs>
+                    <linearGradient id={`chart-gradient-${color.replace('#','_')}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={color} stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor={color} stopOpacity={0}/>
+                    </linearGradient>
+                </defs>
+                <Area
                     type="monotone"
                     dataKey="value"
                     stroke={color}
                     strokeWidth={2}
+                    fill={`url(#chart-gradient-${color.replace('#','_')})`}
                     dot={false}
                 />
-            </LineChart>
+            </AreaChart>
         </ResponsiveContainer>
     </div>
 );
@@ -178,45 +197,47 @@ export default function MarketsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>العملة</TableHead>
-                <TableHead className="text-center">آخر سعر</TableHead>
-                <TableHead className="text-center">التغير (24 ساعة)</TableHead>
-                <TableHead className="text-left">مخطط (24 ساعة)</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {otherCoins.map((coin) => (
-                <TableRow key={coin.symbol}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <CryptoIcon symbol={coin.symbol} />
-                      <div>
-                        <div className="font-bold">{coin.name}</div>
-                        <div className="text-xs text-muted-foreground">{coin.symbol}</div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center font-medium">
-                    ${coin.price.toLocaleString('en-US')}
-                  </TableCell>
-                  <TableCell
-                    className={cn(
-                      'text-center font-semibold',
-                      coin.change >= 0 ? 'text-green-600' : 'text-red-600'
-                    )}
-                  >
-                    {coin.change.toFixed(2)}%
-                  </TableCell>
-                   <TableCell className="text-left">
-                     <MiniChart data={coin.chartData} color={coin.change >= 0 ? '#16a34a' : '#dc2626'} />
-                   </TableCell>
+          <div className="w-full overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>العملة</TableHead>
+                  <TableHead className="text-left">السعر</TableHead>
+                  <TableHead className="text-center">التغير (24س)</TableHead>
+                  <TableHead className="text-left hidden sm:table-cell">مخطط (24س)</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {otherCoins.map((coin) => (
+                  <TableRow key={coin.symbol}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <CryptoIcon symbol={coin.symbol} />
+                        <div>
+                          <div className="font-bold">{coin.name}</div>
+                          <div className="text-xs text-muted-foreground">{coin.symbol}</div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-left font-medium">
+                      ${coin.price.toLocaleString('en-US')}
+                    </TableCell>
+                    <TableCell
+                      className={cn(
+                        'text-center font-semibold',
+                        coin.change >= 0 ? 'text-green-600' : 'text-red-600'
+                      )}
+                    >
+                      {coin.change.toFixed(2)}%
+                    </TableCell>
+                    <TableCell className="text-left hidden sm:table-cell">
+                      <MiniChart data={coin.chartData} color={coin.change >= 0 ? '#16a34a' : '#dc2626'} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </main>
