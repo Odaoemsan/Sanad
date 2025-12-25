@@ -57,9 +57,9 @@ export default function AdminPage() {
                     <div className="lg:col-span-1 grid auto-rows-max gap-6">
                         <AdminUsersStatsCard />
                         <AdminPlansCard />
-                        <AdminBountyCard />
                         <AdminAnnouncementsCard />
                         <AdminSettingsCard />
+                        <AdminBountyCard />
                     </div>
                 </div>
 
