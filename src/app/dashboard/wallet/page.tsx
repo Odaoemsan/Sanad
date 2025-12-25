@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Wallet, CreditCard, Copy, AlertTriangle } from "lucide-react";
 import { useState, Suspense, useMemo } from "react";
 import { useUser, useDatabase, useDatabaseObject, useMemoFirebase, useAuth, useDatabaseList } from '@/firebase';
-import { ref, push, set, runTransaction as runDBTransaction, serverTimestamp, query, orderByChild, equalTo } from 'firebase/database';
+import { ref, push, set, runTransaction as runDBTransaction, serverTimestamp, query, orderByChild, equalTo, update } from 'firebase/database';
 import type { UserProfile, Investment, Transaction } from "@/lib/placeholder-data";
 import { EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -150,7 +150,7 @@ function WithdrawForm({ isWithdrawalEnabled, reasons }: { isWithdrawalEnabled: b
     
     const handleWithdraw = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (!user || !auth || !user.email || isSubmitting || !database || !isWithdrawalEnabled) return;
+        if (!user || !auth || !user.email || isSubmitting || !database || !isWithdrawalEnabled || !userProfileRef) return;
 
         const form = e.currentTarget;
         const formData = new FormData(form);
@@ -179,8 +179,10 @@ function WithdrawForm({ isWithdrawalEnabled, reasons }: { isWithdrawalEnabled: b
             const credential = EmailAuthProvider.credential(user.email, password);
             await reauthenticateWithCredential(user, credential);
 
+            const updates: { [key: string]: any } = {};
             const userRef = ref(database, `users/${user.uid}`);
             
+            // This transaction just deducts the balance
             await runDBTransaction(userRef, (currentData: UserProfile | null) => {
                 if (!currentData) throw new Error("User profile not found.");
                 if ((currentData.balance || 0) < amount) throw new Error("رصيد غير كافٍ");
@@ -188,9 +190,15 @@ function WithdrawForm({ isWithdrawalEnabled, reasons }: { isWithdrawalEnabled: b
                 return currentData;
             });
             
+            // Now that balance is deducted, set the claim counter and create the transaction
+            const currentClaims = userProfile?.dailyProfitClaims || 0;
+            updates[`/users/${user.uid}/claimsAtLastWithdrawal`] = currentClaims;
+
             const newTransactionRef = push(ref(database, 'transactions'));
-            await set(newTransactionRef, {
-                id: newTransactionRef.key,
+            const newTransactionKey = newTransactionRef.key;
+
+            updates[`/transactions/${newTransactionKey}`] = {
+                id: newTransactionKey,
                 userProfileId: user.uid,
                 type: 'Withdrawal',
                 amount: amount,
@@ -198,8 +206,9 @@ function WithdrawForm({ isWithdrawalEnabled, reasons }: { isWithdrawalEnabled: b
                 status: 'Pending',
                 paymentGateway: 'USDT_BEP20',
                 withdrawAddress: address.trim()
-            });
+            };
 
+            await update(ref(database), updates);
 
             toast({
                 title: "تم تقديم طلب السحب",
@@ -288,37 +297,42 @@ function WalletPageContent() {
     const totalBalance = userProfile?.balance || 0;
 
     const { isWithdrawalEnabled, reasons } = useMemo(() => {
-        const hasCompletedDeposit = transactionsData?.some(tx => tx.type === 'Deposit' && tx.status === 'Completed') || false;
-        const currentClaims = userProfile?.dailyProfitClaims || 0;
-        const claimsAtLastWithdrawal = userProfile?.claimsAtLastWithdrawal || 0;
-
-        // Condition for first-time withdrawal
-        const hasEnoughInitialClaims = currentClaims >= MIN_PROFIT_CLAIMS;
-        // Condition for subsequent withdrawals
-        const hasEnoughClaimsSinceLastWithdrawal = currentClaims >= claimsAtLastWithdrawal + MIN_PROFIT_CLAIMS;
-
+        if (isProfileLoading || areTransactionsLoading) {
+            return { isWithdrawalEnabled: false, reasons: ["جاري تحميل الشروط..."] };
+        }
+        
         const reasonsList: string[] = [];
+
+        // Check if there is any pending withdrawal
+        const hasPendingWithdrawal = transactionsData?.some(tx => tx.type === 'Withdrawal' && tx.status === 'Pending') || false;
+        if (hasPendingWithdrawal) {
+             reasonsList.push("لديك طلب سحب معلق بالفعل. يرجى انتظار معالجته قبل تقديم طلب جديد.");
+        }
+        
+        const hasCompletedDeposit = transactionsData?.some(tx => tx.type === 'Deposit' && tx.status === 'Completed') || false;
         if (!hasCompletedDeposit) {
             reasonsList.push("يجب أن يكون لديك إيداع واحد مكتمل على الأقل.");
         }
 
-        if (!userProfile?.claimsAtLastWithdrawal) { // This is the first withdrawal
-             if (!hasEnoughInitialClaims) {
+        const currentClaims = userProfile?.dailyProfitClaims || 0;
+        const claimsAtLastWithdrawal = userProfile?.claimsAtLastWithdrawal || 0;
+
+        if (claimsAtLastWithdrawal === 0) { // Condition for first-time withdrawal
+             if (currentClaims < MIN_PROFIT_CLAIMS) {
                 reasonsList.push(`يجب أن تكمل جمع الربح اليومي ${MIN_PROFIT_CLAIMS} مرات (المكتمل: ${currentClaims}).`);
             }
         } else { // This is a subsequent withdrawal
-             if (!hasEnoughClaimsSinceLastWithdrawal) {
+             if (currentClaims < claimsAtLastWithdrawal + MIN_PROFIT_CLAIMS) {
                 const needed = (claimsAtLastWithdrawal + MIN_PROFIT_CLAIMS) - currentClaims;
                 reasonsList.push(`يجب أن تكمل جمع الربح اليومي ${needed} مرة أخرى قبل السحب القادم.`);
             }
         }
 
-
         return {
             isWithdrawalEnabled: reasonsList.length === 0,
             reasons: reasonsList
         };
-    }, [transactionsData, userProfile]);
+    }, [transactionsData, userProfile, isProfileLoading, areTransactionsLoading]);
 
     const isLoading = !user || !database || isProfileLoading || areInvestmentsLoading || areTransactionsLoading;
     const defaultTab = tab === 'withdraw' ? 'withdraw' : 'deposit';

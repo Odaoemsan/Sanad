@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Table,
   TableBody,
@@ -27,6 +27,17 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useAdminData } from './admin-data-provider';
 import type { Transaction } from "@/lib/placeholder-data";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const L1_COMMISSION_RATE = 0.015; // 1.5%
 const L2_COMMISSION_RATE = 0.01;  // 1%
@@ -43,12 +54,15 @@ export function AdminDepositsCard() {
     error,
   } = useAdminData();
   
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
  const handleTransaction = async (transaction: Transaction, newStatus: 'Completed' | 'Failed') => {
     if (!database || !transaction.id || !transaction.userProfileId) {
         toast({ title: "بيانات ناقصة", description: "المعاملة تفتقد للمعلومات الضرورية.", variant: "destructive" });
         return;
     }
+
+    setProcessingId(transaction.id);
 
     try {
         const updates: { [key: string]: any } = {};
@@ -59,8 +73,6 @@ export function AdminDepositsCard() {
             const depositorSnap = await get(depositorRef);
             if (!depositorSnap.exists()) {
                  toast({ title: "خطأ فادح", description: `لم يتم العثور على المستخدم صاحب المعرف ${transaction.userProfileId}. قد يكون الحساب قد تم حذفه.`, variant: 'destructive'});
-                 // Do not fail the transaction, allow admin to investigate and decide.
-                 // The transaction will remain in pending state.
                  return;
             }
             const depositorProfile: UserProfile = { ...depositorSnap.val(), id: depositorSnap.key };
@@ -141,6 +153,8 @@ export function AdminDepositsCard() {
     } catch (error: any) {
         console.error("Error handling deposit:", error);
         toast({ title: "خطأ", description: error.message || "فشل تحديث طلب الإيداع.", variant: "destructive" });
+    } finally {
+        setProcessingId(null);
     }
   };
   
@@ -203,8 +217,48 @@ export function AdminDepositsCard() {
                     <TableCell>
                        {tx.status === 'Pending' ? (
                           <div className="flex items-center gap-2">
-                            <Button title="موافقة" size="icon" className="h-8 w-8 bg-green-500 hover:bg-green-600" onClick={() => handleTransaction(tx, 'Completed')}><Check /></Button>
-                            <Button title="رفض" size="icon" className="h-8 w-8 bg-red-500 hover:bg-red-600" onClick={() => handleTransaction(tx, 'Failed')}><X /></Button>
+                             <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button title="موافقة" size="icon" className="h-8 w-8 bg-green-500 hover:bg-green-600" disabled={processingId === tx.id}>
+                                      <Check />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>تأكيد الموافقة على الإيداع</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            هل أنت متأكد من أنك تريد الموافقة على طلب الإيداع هذا بمبلغ ${tx.amount.toFixed(2)} للمستخدم "{usersMap.get(tx.userProfileId)}"? سيتم إضافة المبلغ إلى رصيده.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleTransaction(tx, 'Completed')}>
+                                            نعم، موافقة
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                             <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button title="رفض" size="icon" className="h-8 w-8 bg-red-500 hover:bg-red-600" disabled={processingId === tx.id}>
+                                        <X />
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>تأكيد رفض الإيداع</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            هل أنت متأكد من أنك تريد رفض طلب الإيداع هذا؟ لن يتم إضافة أي مبلغ إلى رصيد المستخدم.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleTransaction(tx, 'Failed')}>
+                                            نعم، رفض
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         ) : (
                           <span className="text-xs text-muted-foreground">تمت المعالجة</span>

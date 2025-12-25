@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Table,
   TableBody,
@@ -27,6 +27,17 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useAdminData } from './admin-data-provider';
 import type { Transaction } from "@/lib/placeholder-data";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export function AdminWithdrawalsCard() {
   const database = useDatabase();
@@ -39,9 +50,12 @@ export function AdminWithdrawalsCard() {
       error,
   } = useAdminData();
 
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   const handleTransaction = async (transaction: Transaction, newStatus: 'Completed' | 'Failed') => {
     if (!database || !transaction.userProfileId || !transaction.id) return;
+
+    setProcessingId(transaction.id);
 
     try {
         const updates: { [key: string]: any } = {};
@@ -50,8 +64,8 @@ export function AdminWithdrawalsCard() {
         
         if (!userSnap.exists()) {
              toast({title: "خطأ فادح", description: `لم يتم العثور على المستخدم ${transaction.userProfileId} لإكمال العملية.`, variant: 'destructive'});
-             // If user doesn't exist, we can't proceed. Set transaction to failed.
              await update(ref(database, `transactions/${transaction.id}`), { status: 'Failed' });
+             setProcessingId(null);
              return;
         }
         
@@ -61,11 +75,6 @@ export function AdminWithdrawalsCard() {
              // Refund the balance if the withdrawal fails
              const newBalance = (userProfile.balance || 0) + transaction.amount;
              updates[`users/${transaction.userProfileId}/balance`] = newBalance;
-        }
-        
-        if (newStatus === 'Completed' && transaction.type === 'Withdrawal') {
-            // On successful withdrawal, record the number of claims
-            updates[`users/${transaction.userProfileId}/claimsAtLastWithdrawal`] = userProfile.dailyProfitClaims || 0;
         }
 
         updates[`transactions/${transaction.id}/status`] = newStatus;
@@ -80,6 +89,8 @@ export function AdminWithdrawalsCard() {
     } catch (error: any) {
       console.error("Error handling withdrawal:", error);
       toast({ title: "خطأ", description: error.message || "فشل تحديث طلب السحب.", variant: "destructive" });
+    } finally {
+        setProcessingId(null);
     }
   };
 
@@ -154,8 +165,41 @@ export function AdminWithdrawalsCard() {
                     <TableCell>
                       {tx.status === 'Pending' ? (
                           <div className="flex items-center gap-2">
-                            <Button title="موافقة" size="icon" className="h-8 w-8 bg-green-500 hover:bg-green-600" onClick={() => handleTransaction(tx, 'Completed')}><Check /></Button>
-                            <Button title="رفض" size="icon" className="h-8 w-8 bg-red-500 hover:bg-red-600" onClick={() => handleTransaction(tx, 'Failed')}><X /></Button>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button title="موافقة" size="icon" className="h-8 w-8 bg-green-500 hover:bg-green-600" disabled={processingId === tx.id}><Check /></Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>تأكيد الموافقة على السحب</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            هل أنت متأكد من أنك تريد الموافقة على طلب السحب هذا بمبلغ ${tx.amount.toFixed(2)} إلى العنوان "{tx.withdrawAddress}"؟ هذا الإجراء لا يمكن التراجع عنه.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleTransaction(tx, 'Completed')}>نعم، موافقة</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button title="رفض" size="icon" className="h-8 w-8 bg-red-500 hover:bg-red-600" disabled={processingId === tx.id}><X /></Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>تأكيد رفض السحب</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            هل أنت متأكد من أنك تريد رفض طلب السحب هذا؟ سيتم إعادة المبلغ إلى رصيد المستخدم.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleTransaction(tx, 'Failed')}>نعم، رفض</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                       ) : (
                           <span className="text-xs text-muted-foreground">تمت المعالجة</span>
@@ -176,5 +220,3 @@ export function AdminWithdrawalsCard() {
     </Card>
   );
 }
-
-    
