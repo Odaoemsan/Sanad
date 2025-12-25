@@ -34,9 +34,10 @@ export type Transaction = {
   id: string;
   type: 'Deposit' | 'Withdrawal' | 'Profit' | 'Referral Bonus' | 'Investment' | 'BalanceAdjustment' | 'Bounty Reward';
   amount: number;
-  transactionDate: string; // ISO String. Equivalent to createdAt
+  transactionDate: number | object;
   status: 'Completed' | 'Pending' | 'Failed';
   userProfileId: string; // The UID of the user.
+  username?: string; // For display in admin panel
   investmentId?: string;
   withdrawAddress?: string; // For withdrawal
   notes?: string; // For admin adjustments
@@ -57,9 +58,9 @@ export type Bounty = {
     title: string;
     description: string;
     reward: number;
-    submissionType: 'link' | 'image';
+    submissionType: 'link'; // Simplified to only link
     isActive: boolean;
-    createdAt: string; // ISO String
+    createdAt: number | object; // Unix timestamp or ServerValue
     durationHours: number; // Duration in hours for the bounty to be active
 }
 
@@ -68,7 +69,8 @@ export type BountySubmission = {
     bountyId: string;
     bountyTitle: string;
     userId: string; // The UID of the user.
+    username: string; // For display in admin panel
     status: 'Pending' | 'Approved' | 'Rejected';
-    submissionData: string; // Link or Data URI for image
-    submittedAt: string; // ISO String. Equivalent to createdAt
+    submissionData: string; // Link or text
+    submittedAt: number | object;
 }

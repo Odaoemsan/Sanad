@@ -23,13 +23,6 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   Table,
   TableBody,
   TableCell,
@@ -44,11 +37,10 @@ import type { Bounty } from '@/lib/placeholder-data';
 import { PlusCircle, Edit, Trash2, Gift } from 'lucide-react';
 import { format } from 'date-fns';
 
-const initialBountyState: Omit<Bounty, 'id' | 'createdAt'> = {
+const initialBountyState: Omit<Bounty, 'id' | 'createdAt' | 'submissionType'> = {
   title: '',
   description: '',
   reward: 1,
-  submissionType: 'link',
   isActive: true,
   durationHours: 24,
 };
@@ -89,16 +81,20 @@ export function AdminBountyCard() {
     }
 
     try {
-      const dataToSave = {
-        ...currentBounty,
-        reward: Number(currentBounty.reward),
+      const dataToSave: Omit<Bounty, 'id'> = {
+        title: currentBounty.title || '',
+        description: currentBounty.description || '',
+        reward: Number(currentBounty.reward) || 0,
         durationHours: Number(currentBounty.durationHours) || 24,
+        isActive: currentBounty.isActive ?? true,
+        submissionType: 'link', // Always link now
+        createdAt: currentBounty.createdAt || serverTimestamp() as any,
       };
 
       if (currentBounty.id) {
         // Editing
         const bountyRef = ref(database, `bounties/${currentBounty.id}`);
-        await set(bountyRef, dataToSave);
+        await set(bountyRef, { ...dataToSave, id: currentBounty.id });
         toast({ title: 'تم تحديث المهمة' });
       } else {
         // Creating
@@ -106,7 +102,6 @@ export function AdminBountyCard() {
         await set(newBountyRef, {
           ...dataToSave,
           id: newBountyRef.key,
-          createdAt: serverTimestamp(),
         });
         toast({ title: 'تم إنشاء المهمة بنجاح' });
       }
@@ -180,7 +175,7 @@ export function AdminBountyCard() {
                 <Gift/>
                 {currentBounty.id ? 'تعديل المهمة' : 'إنشاء مهمة جديدة'}
                 </DialogTitle>
-              <DialogDescription>املأ تفاصيل المهمة أدناه.</DialogDescription>
+              <DialogDescription>املأ تفاصيل المهمة أدناه. الإثبات المطلوب هو رابط نصي دائمًا.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
               <div className="grid grid-cols-4 items-center gap-4">
@@ -194,21 +189,6 @@ export function AdminBountyCard() {
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="reward" className="text-right">المكافأة ($)</Label>
                 <Input id="reward" name="reward" type="number" value={currentBounty.reward || 0} onChange={handleChange} className="col-span-3" />
-              </div>
-               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="submissionType" className="text-right">نوع الإثبات</Label>
-                <Select
-                    value={currentBounty.submissionType}
-                    onValueChange={(value: 'link' | 'image') => setCurrentBounty({...currentBounty, submissionType: value})}
-                >
-                    <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="اختر نوع الإثبات" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="link">رابط (Link)</SelectItem>
-                        <SelectItem value="image">صورة (Image)</SelectItem>
-                    </SelectContent>
-                </Select>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="durationHours" className="text-right">المدة (ساعات)</Label>

@@ -159,6 +159,10 @@
           "type": "string",
           "description": "Reference to the UserProfile associated with this transaction. (Relationship: UserProfile 1:N Transaction)"
         },
+        "username": {
+            "type": "string",
+            "description": "The username of the user, denormalized for admin display."
+        },
         "investmentId": {
           "type": "string",
           "description": "Reference to the Investment associated with this transaction. (Relationship: Investment 1:N Transaction)"
@@ -248,7 +252,7 @@
         "title": { "type": "string" },
         "description": { "type": "string" },
         "reward": { "type": "number" },
-        "submissionType": { "type": "string", "enum": ["link", "image"] },
+        "submissionType": { "type": "string", "enum": ["link"] },
         "isActive": { "type": "boolean" },
         "createdAt": { "type": "string", "format": "date-time" },
         "durationHours": { "type": "number" }
@@ -265,11 +269,12 @@
         "bountyId": { "type": "string" },
         "bountyTitle": { "type": "string" },
         "userId": { "type": "string" },
+        "username": { "type": "string"},
         "status": { "type": "string", "enum": ["Pending", "Approved", "Rejected"] },
         "submissionData": { "type": "string" },
         "submittedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "bountyId", "bountyTitle", "userId", "status", "submissionData", "submittedAt"]
+      "required": ["id", "bountyId", "bountyTitle", "userId", "username", "status", "submissionData", "submittedAt"]
     }
   },
   "auth": {

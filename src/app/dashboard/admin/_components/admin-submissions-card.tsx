@@ -63,7 +63,7 @@ export function AdminSubmissionsCard() {
             const userSnap = await get(userRef);
             if (!userSnap.exists()) {
                 toast({ title: 'مستخدم غير موجود', description: `لا يمكن إضافة المكافأة لأن المستخدم صاحب المعرف ${submission.userId} غير موجود.`, variant: 'destructive'});
-                updates[`bounty_submissions/${submission.id}/status`] = 'Rejected';
+                updates[`bounty_submissions/${submission.id}/status`] = 'Rejected'; // Reject if user is gone
                 await update(ref(database), updates);
                 return;
             }
@@ -77,6 +77,7 @@ export function AdminSubmissionsCard() {
             updates[`transactions/${transactionRef.key}`] = {
                 id: transactionRef.key,
                 userProfileId: submission.userId,
+                username: userProfile.username,
                 type: 'Bounty Reward',
                 amount: bounty.reward,
                 status: 'Completed',
@@ -130,16 +131,9 @@ export function AdminSubmissionsCard() {
                     <TableCell className="font-medium text-xs">{usersMap.get(sub.userId) || `(مستخدم غير موجود)`}</TableCell>
                     <TableCell className="font-medium text-xs">{sub.bountyTitle}</TableCell>
                     <TableCell>
-                      <Button
-                          variant="outline"
-                          size="sm"
-                          asChild
-                        >
-                           <a href={sub.submissionData} target="_blank" rel="noopener noreferrer">
-                                {sub.submissionData.startsWith('data:image') ? <Eye className="ml-2 h-4 w-4" /> : <LinkIcon className="ml-2 h-4 w-4" />}
-                                عرض
-                           </a>
-                        </Button>
+                      <p className="font-mono text-xs max-w-[150px] truncate" title={sub.submissionData}>
+                        {sub.submissionData}
+                      </p>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">

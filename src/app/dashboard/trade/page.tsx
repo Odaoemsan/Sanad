@@ -118,7 +118,8 @@ function DailyProfitClaim() {
                     const transactionRef = push(ref(database, `transactions`));
                     await set(transactionRef, {
                         id: transactionRef.key, type: 'Profit', amount: totalDailyProfit,
-                        transactionDate: serverTimestamp(), status: 'Completed', userProfileId: user.uid
+                        transactionDate: serverTimestamp(), status: 'Completed', userProfileId: user.uid,
+                        username: userProfile.username
                     });
                     setClaimStatus('success');
                     setTimeout(() => setClaimStatus('claimed'), 3000);
@@ -148,13 +149,14 @@ function DailyProfitClaim() {
 }
 
 function BountySystem() {
-    const { user } = useUser();
+    const { user, isUserLoading: isAuthLoading } = useUser();
     const database = useDatabase();
     const { toast } = useToast();
-    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const userProfileRef = useMemoFirebase(() => (database && user) ? ref(database, `users/${user.uid}`) : null, [database, user]);
+    const { data: userProfile, isLoading: isProfileLoading } = useDatabaseObject<UserProfile>(userProfileRef);
 
     const [submissionData, setSubmissionData] = useState('');
-    const [proofFile, setProofFile] = useState<File | null>(null);
     const [isSubmitting, setIsSubmitting] = useState<string | null>(null);
 
     const bountiesRef = useMemoFirebase(() => database ? query(ref(database, 'bounties'), orderByChild('isActive'), equalTo(true)) : null, [database]);
@@ -165,30 +167,12 @@ function BountySystem() {
     
     const submittedBountyIds = useMemo(() => new Set(userSubmissions?.map(s => s.bountyId)), [userSubmissions]);
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        if (!file.type.startsWith('image/')) { toast({ title: 'ملف غير صالح', variant: 'destructive'}); return; }
-        if (file.size > 2 * 1024 * 1024) { toast({ title: 'الملف كبير جدًا (الحد الأقصى 2MB)', variant: 'destructive'}); return; }
-        setProofFile(file);
-    };
-
-    const fileToBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = error => reject(error);
-    });
-
     const handleSubmit = async (bounty: Bounty) => {
-        if (!user || !database) return;
+        if (!user || !database || !userProfile) return;
         
-        let finalSubmissionData = submissionData;
-        if (bounty.submissionType === 'image') {
-            if (!proofFile) { toast({ title: "الرجاء اختيار صورة", variant: "destructive" }); return; }
-            finalSubmissionData = await fileToBase64(proofFile);
-        } else {
-            if (!submissionData) { toast({ title: "الرجاء إدخال الرابط", variant: "destructive" }); return; }
+        if (!submissionData) { 
+            toast({ title: "الرجاء إدخال رابط الإثبات", variant: "destructive" }); 
+            return; 
         }
 
         setIsSubmitting(bounty.id);
@@ -199,13 +183,13 @@ function BountySystem() {
                 bountyId: bounty.id,
                 bountyTitle: bounty.title,
                 userId: user.uid,
+                username: userProfile.username,
                 status: 'Pending',
-                submissionData: finalSubmissionData,
+                submissionData: submissionData,
                 submittedAt: serverTimestamp(),
             });
             toast({ title: 'تم إرسال المهمة بنجاح', description: 'سيتم مراجعتها من قبل الإدارة.' });
             setSubmissionData('');
-            setProofFile(null);
         } catch (error) {
             toast({ title: 'فشل إرسال المهمة', variant: 'destructive' });
         } finally {
@@ -213,7 +197,7 @@ function BountySystem() {
         }
     };
     
-    const isLoading = isLoadingBounties || isLoadingSubmissions;
+    const isLoading = isLoadingBounties || isLoadingSubmissions || isAuthLoading || isProfileLoading;
     
     return (
         <div className="space-y-6">
@@ -228,7 +212,7 @@ function BountySystem() {
 
                      {bounties?.map(bounty => {
                          const hasSubmitted = submittedBountyIds.has(bounty.id);
-                         const bountyCreatedAt = typeof bounty.createdAt === 'number' ? bounty.createdAt : (bounty.createdAt ? parseISO(bounty.createdAt).getTime() : Date.now());
+                         const bountyCreatedAt = typeof bounty.createdAt === 'number' ? bounty.createdAt : Date.now();
                          const isExpired = bounty.durationHours ? isPast(addHours(bountyCreatedAt, bounty.durationHours)) : false;
                          const canSubmit = !hasSubmitted && !isExpired;
 
@@ -243,31 +227,19 @@ function BountySystem() {
                                 </CardHeader>
                                 {canSubmit && (
                                     <CardFooter className="flex-col items-start gap-2">
-                                        <Label htmlFor={`submission-${bounty.id}`}>
-                                            {bounty.submissionType === 'link' ? 'أدخل الرابط هنا' : 'ارفع صورة الإثبات'}
-                                        </Label>
-                                        {bounty.submissionType === 'link' ? (
-                                            <Input id={`submission-${bounty.id}`} value={submissionData} onChange={(e) => setSubmissionData(e.target.value)} placeholder="https://..." />
-                                        ) : (
-                                            <>
-                                            <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full justify-start gap-2">
-                                                <Upload className="h-4 w-4"/>
-                                                {proofFile ? `تم اختيار: ${proofFile.name}` : 'اختر صورة الإثبات'}
-                                            </Button>
-                                            <Input id="proof-file" type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
-                                            </>
-                                        )}
+                                        <Label htmlFor={`submission-${bounty.id}`}>أدخل رابط الإثبات</Label>
+                                        <Input id={`submission-${bounty.id}`} value={submissionData} onChange={(e) => setSubmissionData(e.target.value)} placeholder="https://..." />
                                         <Button onClick={() => handleSubmit(bounty)} disabled={isSubmitting === bounty.id} className="w-full mt-2">
                                             {isSubmitting === bounty.id ? 'جارٍ الإرسال...' : 'إرسال للمراجعة'}
                                         </Button>
                                     </CardFooter>
                                 )}
-                                {hasSubmitted && (
+                                {(hasSubmitted && !isExpired) && (
                                     <CardFooter>
                                          <p className="text-sm text-green-600 font-medium w-full text-center">لقد قمت بتنفيذ هذه المهمة من قبل.</p>
                                     </CardFooter>
                                 )}
-                                {isExpired && !hasSubmitted && (
+                                {isExpired && (
                                      <CardFooter>
                                          <p className="text-sm text-destructive font-medium w-full text-center">انتهت صلاحية هذه المهمة.</p>
                                     </CardFooter>
