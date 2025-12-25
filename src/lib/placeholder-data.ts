@@ -21,7 +21,7 @@ export type UserProfile = {
   referralCode?: string;
   dailyProfitClaims?: number;
   claimsAtLastWithdrawal?: number;
-  rank?: 'user' | 'representative';
+  rank?: 'user' | 'success-partner' | 'representative';
   teamTotalDeposit?: number;
 }
 
@@ -80,6 +80,3 @@ export type BountySubmission = {
     submissionData: string; // Link or text
     submittedAt: number | object;
 }
-
-    
-    

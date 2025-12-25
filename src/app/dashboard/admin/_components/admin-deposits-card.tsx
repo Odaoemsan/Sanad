@@ -41,7 +41,8 @@ import {
 
 const L1_COMMISSION_RATE = 0.015; // 1.5%
 const L2_COMMISSION_RATE = 0.01;  // 1%
-const REPRESENTATIVE_COMMISSION_RATE = 0.05; // 5% for Representatives
+const SUCCESS_PARTNER_COMMISSION_RATE = 0.03; // 3%
+const REPRESENTATIVE_COMMISSION_RATE = 0.05; // 5%
 
 export function AdminDepositsCard() {
   const database = useDatabase();
@@ -95,7 +96,13 @@ export function AdminDepositsCard() {
                 if (l1ReferrerSnap.exists()) {
                     const l1ReferrerProfile: UserProfile = { ...l1ReferrerSnap.val(), id: l1ReferrerSnap.key };
                     
-                    const commissionRate = l1ReferrerProfile.rank === 'representative' ? REPRESENTATIVE_COMMISSION_RATE : L1_COMMISSION_RATE;
+                    let commissionRate = L1_COMMISSION_RATE;
+                    if (l1ReferrerProfile.rank === 'representative') {
+                        commissionRate = REPRESENTATIVE_COMMISSION_RATE;
+                    } else if (l1ReferrerProfile.rank === 'success-partner') {
+                        commissionRate = SUCCESS_PARTNER_COMMISSION_RATE;
+                    }
+                    
                     const l1Bonus = transaction.amount * commissionRate;
                     
                     // Update L1 referrer's balance

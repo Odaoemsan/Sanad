@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Copy, Users, Activity, Percent, ChevronsRight, Crown, CheckCircle, Rocket } from "lucide-react";
+import { Copy, Users, Activity, Percent, Crown, CheckCircle, Rocket, Star, Medal } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useUser, useDatabase, useDatabaseList, useDatabaseObject, useMemoFirebase } from "@/firebase";
@@ -13,7 +13,11 @@ import { format } from "date-fns";
 import { useState, useCallback, useMemo } from "react";
 import { Progress } from "@/components/ui/progress";
 
-const RANK_GOAL = 10000; // $10,000
+const RANKS = {
+    user: { name: 'عضو', goal: 0, next: 'success-partner' },
+    'success-partner': { name: 'شريك نجاح', goal: 5000, next: 'representative' },
+    'representative': { name: 'ممثل رسمي', goal: 10000, next: null },
+};
 
 export default function ReferralsPage() {
     const { user } = useUser();
@@ -42,43 +46,48 @@ export default function ReferralsPage() {
     
     const isLoading = isLoadingProfile || isLoadingReferrals || isLoadingTransactions;
 
-    // Memoize the calculation of team deposit total
     const teamTotalDeposit = useMemo(() => {
         if (!user || !referralsData || !allTransactions) return 0;
         
-        // 1. User's own deposits
         const userOwnDeposits = allTransactions
             .filter(tx => tx.userProfileId === user.uid && tx.type === 'Deposit' && tx.status === 'Completed')
             .reduce((sum, tx) => sum + tx.amount, 0);
 
-        // 2. L1 referrals' deposits
         const l1ReferralIds = new Set(referralsData.map(r => r.referredId));
         const l1Deposits = allTransactions
             .filter(tx => l1ReferralIds.has(tx.userProfileId) && tx.type === 'Deposit' && tx.status === 'Completed')
             .reduce((sum, tx) => sum + tx.amount, 0);
-
-        // This is a simplified calculation. A full L2 calculation would require another DB query.
-        // For now, we are basing the rank goal on user's own deposits + L1 deposits.
-        // A more robust implementation would involve Cloud Functions to keep this value updated.
+        
+        // This is a simplified L1 + own deposit calculation. A full team calculation (L2, L3...)
+        // would be more complex and is best handled by Cloud Functions for performance.
         return userOwnDeposits + l1Deposits;
     }, [user, referralsData, allTransactions]);
 
 
     const handleCheckRank = async () => {
-        if (!user || !database || !userProfileRef) return;
+        if (!user || !database || !userProfileRef || !userProfile) return;
         setIsCheckingRank(true);
         
-        // Update the calculated value in the database
         await update(userProfileRef, { teamTotalDeposit: teamTotalDeposit });
+
+        const currentRank = userProfile.rank || 'user';
         
-        if (userProfile?.rank === 'representative') {
-             toast({ title: "أنت بالفعل ممثل رسمي!", description: "لقد وصلت إلى هذه الرتبة. استمر في العمل الرائع!", className: "bg-blue-500 text-white" });
-        } else if (teamTotalDeposit >= RANK_GOAL) {
+        if (currentRank === 'representative') {
+             toast({ title: "أنت في أعلى رتبة!", description: "لقد وصلت إلى رتبة ممثل رسمي. استمر في العمل الرائع!", className: "bg-blue-500 text-white" });
+        } else if (teamTotalDeposit >= RANKS['representative'].goal) {
             await update(userProfileRef, { rank: 'representative' });
             toast({ title: "🎉 تهانينا! تمت ترقيتك!", description: "لقد أصبحت الآن ممثل رسمي وتحصل على عمولة 5% على الإحالات الجديدة.", className: "bg-green-600 border-green-600 text-white" });
+        } else if (teamTotalDeposit >= RANKS['success-partner'].goal) {
+            if (currentRank !== 'success-partner') {
+                 await update(userProfileRef, { rank: 'success-partner' });
+                 toast({ title: "🎉 تهانينا! تمت ترقيتك!", description: "لقد أصبحت الآن شريك نجاح وتحصل على عمولة 3% على الإحالات الجديدة.", className: "bg-green-600 border-green-600 text-white" });
+            } else {
+                 const remaining = RANKS['representative'].goal - teamTotalDeposit;
+                 toast({ title: "أنت بالفعل شريك نجاح!", description: `واصل العمل! يتبقى لك ${remaining.toFixed(2)}$ للوصول إلى رتبة ممثل رسمي.`, variant: "default" });
+            }
         } else {
-            const remaining = RANK_GOAL - teamTotalDeposit;
-            toast({ title: "لم تصل إلى الهدف بعد", description: `واصل العمل! يتبقى لك ${remaining.toFixed(2)}$ للوصول إلى رتبة ممثل رسمي.`, variant: "destructive" });
+            const remaining = RANKS['success-partner'].goal - teamTotalDeposit;
+            toast({ title: "لم تصل إلى الهدف بعد", description: `واصل العمل! يتبقى لك ${remaining.toFixed(2)}$ للوصول إلى رتبة شريك نجاح.`, variant: "destructive" });
         }
         setIsCheckingRank(false);
     };
@@ -102,6 +111,10 @@ export default function ReferralsPage() {
         { title: "إجمالي العمولة", value: `$${totalCommission.toFixed(2)}`, icon: Users },
     ];
     
+    const currentRankName = RANKS[userProfile?.rank || 'user']?.name || 'عضو';
+    const nextRankKey = RANKS[userProfile?.rank || 'user']?.next;
+    const nextRankGoal = nextRankKey ? RANKS[nextRankKey as keyof typeof RANKS].goal : RANKS['representative'].goal;
+
     return (
         <>
             <main className="flex flex-1 flex-col gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
@@ -117,40 +130,50 @@ export default function ReferralsPage() {
                                 <Crown className="text-amber-500"/>
                                 برنامج الشركاء - رتب وحوافز
                             </CardTitle>
-                            <CardDescription>قم بترقية حسابك لزيادة أرباحك من الإحالات. اعمل مع فريقك لتحقيق الأهداف.</CardDescription>
+                            <CardDescription>قم بترقية حسابك لزيادة أرباحك من الإحالات. رتبتك الحالية: <span className="font-bold text-primary">{currentRankName}</span></CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="p-4 border rounded-lg bg-muted/30">
-                                <h3 className="font-bold flex items-center gap-2">
-                                    <Rocket className="h-5 w-5 text-primary"/>
-                                    رتبة: ممثل رسمي
-                                </h3>
-                                <p className="text-sm text-muted-foreground mt-1">عندما يصل إجمالي إيداعاتك أنت وفريقك (المستوى الأول) إلى <span className="font-bold text-primary">${RANK_GOAL.toLocaleString()}</span>، تتم ترقيتك.</p>
-                                <div className="mt-3 space-y-2">
-                                    <div className="flex items-start gap-2 text-sm">
+                        <CardContent className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="p-4 border rounded-lg bg-muted/30">
+                                    <h3 className="font-bold flex items-center gap-2">
+                                        <Star className="h-5 w-5 text-yellow-500"/>
+                                        رتبة: شريك نجاح
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground mt-1">عندما يصل إجمالي إيداعاتك أنت وفريقك إلى <span className="font-bold text-primary">${RANKS["success-partner"].goal.toLocaleString()}</span>.</p>
+                                    <div className="mt-3 flex items-start gap-2 text-sm">
                                         <CheckCircle className="h-4 w-4 mt-0.5 text-green-500 shrink-0"/>
-                                        <div>
-                                            <span className="font-semibold">عمولة 5%</span> على جميع إيداعات المستوى الأول التي تتم <span className="underline">بعد</span> حصولك على الرتبة.
+                                        <div><span className="font-semibold">عمولة 3%</span> على جميع إيداعات المستوى الأول.</div>
+                                    </div>
+                                </div>
+                                 <div className="p-4 border rounded-lg bg-muted/30">
+                                    <h3 className="font-bold flex items-center gap-2">
+                                        <Medal className="h-5 w-5 text-blue-500"/>
+                                        رتبة: ممثل رسمي
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground mt-1">عندما يصل إجمالي إيداعاتك أنت وفريقك إلى <span className="font-bold text-primary">${RANKS["representative"].goal.toLocaleString()}</span>.</p>
+                                    <div className="mt-3 space-y-2">
+                                        <div className="flex items-start gap-2 text-sm">
+                                            <CheckCircle className="h-4 w-4 mt-0.5 text-green-500 shrink-0"/>
+                                            <div><span className="font-semibold">عمولة 5%</span> على جميع إيداعات المستوى الأول.</div>
+                                        </div>
+                                        <div className="flex items-start gap-2 text-sm">
+                                             <CheckCircle className="h-4 w-4 mt-0.5 text-green-500 shrink-0"/>
+                                             شارة التوثيق الخضراء (✅) بجانب اسمك.
                                         </div>
                                     </div>
-                                    <div className="flex items-start gap-2 text-sm">
-                                         <CheckCircle className="h-4 w-4 mt-0.5 text-green-500 shrink-0"/>
-                                         تظهر شارة التوثيق الخضراء (✅) بجانب اسمك كدليل على ثقة المنصة بك.
+                                </div>
+                            </div>
+
+                             {userProfile?.rank !== 'representative' && (
+                               <div className="space-y-2">
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="font-medium">التقدم نحو الرتبة التالية</span>
+                                        <span className="font-bold">${(teamTotalDeposit).toLocaleString()} / ${nextRankGoal.toLocaleString()}</span>
                                     </div>
+                                    <Progress value={((teamTotalDeposit) / nextRankGoal) * 100} />
                                 </div>
-                            </div>
-                            <div className="space-y-2">
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="font-medium">التقدم نحو الهدف</span>
-                                    <span className="font-bold">${(teamTotalDeposit).toLocaleString()} / ${RANK_GOAL.toLocaleString()}</span>
-                                </div>
-                                <Progress value={((teamTotalDeposit) / RANK_GOAL) * 100} />
-                            </div>
-                             {userProfile?.rank === 'representative' && (
-                                <div className="text-center font-bold text-green-600 bg-green-500/10 p-3 rounded-md">
-                                    تهانينا! أنت ممثل رسمي.
-                                </div>
-                            )}
+                             )}
+                            
                              <Button onClick={handleCheckRank} disabled={isCheckingRank} className="w-full">
                                 {isCheckingRank ? 'جاري التحقق...' : 'تحقق من الرتبة'}
                             </Button>
@@ -182,17 +205,17 @@ export default function ReferralsPage() {
                                     <Percent className="h-5 w-5" />
                                 </div>
                                 <div>
-                                    <p className="font-bold">المستوى الأول: 1.5% عمولة</p>
-                                    <p className="text-muted-foreground">عندما يقوم صديقك الذي دعوته بالإيداع، ستحصل على 1.5% من مبلغ إيداعه كعمولة فورية.</p>
+                                    <p className="font-bold">المستوى الأول: عمولة تصل إلى 5%</p>
+                                    <p className="text-muted-foreground">تعتمد عمولتك على رتبتك: عضو (1.5%)، شريك نجاح (3%)، ممثل رسمي (5%).</p>
                                 </div>
                             </div>
                              <div className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg">
                                  <div className="flex items-center justify-center bg-primary/10 text-primary rounded-full h-10 w-10">
-                                    <ChevronsRight className="h-5 w-5" />
+                                    <p className="font-bold text-lg">2</p>
                                 </div>
                                 <div>
                                     <p className="font-bold">المستوى الثاني: 1% عمولة</p>
-                                    <p className="text-muted-foreground">عندما يقوم الشخص الذي دعاه صديقك بالإيداع، ستحصل أنت أيضًا على 1% من مبلغ إيداعه. أرباح مستمرة!</p>
+                                    <p className="text-muted-foreground">عندما يقوم الشخص الذي دعاه صديقك بالإيداع، ستحصل أنت أيضًا على 1% من مبلغ إيداعه.</p>
                                 </div>
                             </div>
                         </CardContent>

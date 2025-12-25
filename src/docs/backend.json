@@ -52,7 +52,7 @@
         "rank": {
             "type": "string",
             "description": "The user's rank in the partner program (e.g., user, representative).",
-            "enum": ["user", "representative"]
+            "enum": ["user", "success-partner", "representative"]
         },
         "teamTotalDeposit": {
             "type": "number",
@@ -398,5 +398,3 @@
     "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging. User profiles are stored in a top-level `users` collection where the document ID is the user's Auth UID. Investment plans and announcements are stored globally as they are public data. User-specific data like investments and referrals are nested under the user's document to enforce ownership-based security rules easily. Transactions are in a root collection to allow for efficient admin queries (e.g., list all pending deposits), while still being secured by rules that check the `userProfileId` field inside each document, ensuring users can only read/write their own transactions."
   }
 }
-
-    
