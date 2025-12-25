@@ -15,6 +15,39 @@ import { Progress } from "@/components/ui/progress";
 
 const BASE_COMMISSION = 1.5;
 
+async function calculateTeamDeposit(database: any, user: any, referrals: Referral[]): Promise<number> {
+    if (!user || !referrals || referrals.length === 0) return 0;
+    
+    const transactionsRef = ref(database, 'transactions');
+    let totalDeposit = 0;
+
+    // L1 Deposits
+    const l1ReferralIds = referrals.map(r => r.referredId);
+    const depositPromises = l1ReferralIds.map(id => 
+        get(query(transactionsRef, orderByChild('userProfileId'), equalTo(id)))
+    );
+
+    const l1Snapshots = await Promise.all(depositPromises);
+    const l1Transactions: Transaction[] = [];
+    l1Snapshots.forEach(snapshot => {
+        if (snapshot.exists()) {
+            Object.values(snapshot.val()).forEach((tx: any) => {
+                 if (tx.type === 'Deposit' && tx.status === 'Completed') {
+                    l1Transactions.push(tx);
+                 }
+            });
+        }
+    });
+    totalDeposit += l1Transactions.reduce((sum, tx) => sum + tx.amount, 0);
+
+    // L2 Deposits would require another level of fetching, which can get complex
+    // on the client. This is best handled by a server function for accuracy and performance.
+    // For now, we stick to L1 for client-side calculation.
+
+    return totalDeposit;
+}
+
+
 export default function ReferralsPage() {
     const { user } = useUser();
     const database = useDatabase();
@@ -31,62 +64,48 @@ export default function ReferralsPage() {
         return ref(database, `users/${user.uid}/referrals`);
     }, [user, database]);
     
-    const transactionsRef = useMemoFirebase(() => {
-        if (!database) return null;
-        return ref(database, `transactions`);
-    }, [database]);
-    
     const ranksRef = useMemoFirebase(() => database ? ref(database, 'partner_ranks') : null, [database]);
 
     const { data: userProfile, isLoading: isLoadingProfile } = useDatabaseObject<UserProfile>(userProfileRef);
     const { data: referralsData, isLoading: isLoadingReferrals } = useDatabaseList<Referral>(referralsRef);
-    const { data: allTransactions, isLoading: isLoadingTransactions } = useDatabaseList<Transaction>(transactionsRef);
     const { data: ranksData, isLoading: isLoadingRanks } = useDatabaseList<PartnerRank>(ranksRef);
     
-    const isLoading = isLoadingProfile || isLoadingReferrals || isLoadingTransactions || isLoadingRanks;
+    const isLoading = isLoadingProfile || isLoadingReferrals || isLoadingRanks;
 
     const sortedRanks = useMemo(() => ranksData?.sort((a, b) => a.goal - b.goal) || [], [ranksData]);
 
-    const teamTotalDeposit = useMemo(() => {
-        if (!user || !referralsData || !allTransactions) return 0;
-        
-        const userOwnDeposits = allTransactions
-            .filter(tx => tx.userProfileId === user.uid && tx.type === 'Deposit' && tx.status === 'Completed')
-            .reduce((sum, tx) => sum + tx.amount, 0);
-
-        const l1ReferralIds = new Set(referralsData.map(r => r.referredId));
-        const l1Deposits = allTransactions
-            .filter(tx => l1ReferralIds.has(tx.userProfileId) && tx.type === 'Deposit' && tx.status === 'Completed')
-            .reduce((sum, tx) => sum + tx.amount, 0);
-        
-        // This is a simplified L1 + own deposit calculation. A full team calculation (L2, L3...)
-        // would be more complex and is best handled by Cloud Functions for performance.
-        return userOwnDeposits + l1Deposits;
-    }, [user, referralsData, allTransactions]);
-
-
     const handleCheckRank = async () => {
-        if (!user || !database || !userProfileRef || !userProfile || !sortedRanks.length) return;
+        if (!user || !database || !userProfileRef || !userProfile || !sortedRanks.length || !referralsData) {
+            toast({ title: "لا يمكن التحقق الآن", description: "البيانات المطلوبة غير مكتملة.", variant: "destructive" });
+            return;
+        }
         setIsCheckingRank(true);
         
-        await update(userProfileRef, { teamTotalDeposit: teamTotalDeposit });
+        try {
+            const calculatedTeamDeposit = await calculateTeamDeposit(database, user, referralsData);
+            await update(userProfileRef, { teamTotalDeposit: calculatedTeamDeposit });
 
-        const currentRankId = userProfile.rank;
-        const highestAchievedRank = sortedRanks.slice().reverse().find(rank => teamTotalDeposit >= rank.goal);
+            const currentRankId = userProfile.rank;
+            const highestAchievedRank = sortedRanks.slice().reverse().find(rank => calculatedTeamDeposit >= rank.goal);
 
-        if (highestAchievedRank) {
-            if (currentRankId !== highestAchievedRank.id) {
-                await update(userProfileRef, { rank: highestAchievedRank.id });
-                toast({ title: "🎉 تهانينا! تمت ترقيتك!", description: `لقد أصبحت الآن ${highestAchievedRank.name} وتحصل على عمولة ${highestAchievedRank.commission}% على الإحالات الجديدة.`, className: "bg-green-600 border-green-600 text-white" });
+            if (highestAchievedRank) {
+                if (currentRankId !== highestAchievedRank.id) {
+                    await update(userProfileRef, { rank: highestAchievedRank.id });
+                    toast({ title: "🎉 تهانينا! تمت ترقيتك!", description: `لقد أصبحت الآن ${highestAchievedRank.name} وتحصل على عمولة ${highestAchievedRank.commission}% على الإحالات الجديدة.`, className: "bg-green-600 border-green-600 text-white" });
+                } else {
+                    toast({ title: `أنت بالفعل ${highestAchievedRank.name}!`, description: `واصل العمل الرائع! إجمالي إيداعات فريقك هو ${calculatedTeamDeposit.toFixed(2)}$`, variant: "default" });
+                }
             } else {
-                 toast({ title: `أنت بالفعل ${highestAchievedRank.name}!`, description: `واصل العمل الرائع!`, variant: "default" });
+                const nextRank = sortedRanks[0];
+                const remaining = nextRank.goal - calculatedTeamDeposit;
+                toast({ title: "لم تصل إلى الهدف بعد", description: `واصل العمل! يتبقى لك ${remaining.toFixed(2)}$ للوصول إلى رتبة ${nextRank.name}.`, variant: "destructive" });
             }
-        } else {
-            const nextRank = sortedRanks[0];
-            const remaining = nextRank.goal - teamTotalDeposit;
-            toast({ title: "لم تصل إلى الهدف بعد", description: `واصل العمل! يتبقى لك ${remaining.toFixed(2)}$ للوصول إلى رتبة ${nextRank.name}.`, variant: "destructive" });
+        } catch (error) {
+            console.error("Rank check failed:", error);
+            toast({ title: "خطأ", description: "فشل التحقق من الرتبة. حاول مرة أخرى.", variant: "destructive" });
+        } finally {
+            setIsCheckingRank(false);
         }
-        setIsCheckingRank(false);
     };
 
     const referralCode = userProfile?.referralCode || "جاري التحميل...";
@@ -113,6 +132,7 @@ export default function ReferralsPage() {
     
     const currentRankIndex = sortedRanks.findIndex(r => r.id === currentRank?.id);
     const nextRank = sortedRanks[currentRankIndex + 1];
+    const teamTotalDeposit = userProfile?.teamTotalDeposit || 0;
 
     return (
         <>
@@ -140,7 +160,7 @@ export default function ReferralsPage() {
                                              {rank.id === 'representative' && <Medal className="h-5 w-5 text-blue-500"/>}
                                             رتبة: {rank.name}
                                         </h3>
-                                        <p className="text-sm text-muted-foreground mt-1">عندما يصل إجمالي إيداعاتك أنت وفريقك إلى <span className="font-bold text-primary">${rank.goal.toLocaleString()}</span>.</p>
+                                        <p className="text-sm text-muted-foreground mt-1">عندما يصل إجمالي إيداعات فريقك إلى <span className="font-bold text-primary">${rank.goal.toLocaleString()}</span>.</p>
                                         <div className="mt-3 flex items-start gap-2 text-sm">
                                             <CheckCircle className="h-4 w-4 mt-0.5 text-green-500 shrink-0"/>
                                             <div><span className="font-semibold">عمولة {rank.commission}%</span> على جميع إيداعات المستوى الأول.</div>
