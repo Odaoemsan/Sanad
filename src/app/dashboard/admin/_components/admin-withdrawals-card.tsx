@@ -20,7 +20,7 @@ import { useDatabase } from "@/firebase";
 import { ref, update, get } from 'firebase/database';
 import type { UserProfile } from "@/lib/placeholder-data";
 import { Button } from "@/components/ui/button";
-import { Check, X, Activity, Inbox } from "lucide-react";
+import { Check, X, Activity, Inbox, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -72,6 +72,14 @@ export function AdminWithdrawalsCard() {
       toast({ title: "خطأ", description: error.message || "فشل تحديث طلب السحب.", variant: "destructive" });
     }
   };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+        title: "تم النسخ بنجاح",
+        description: "تم نسخ عنوان السحب إلى الحافظة."
+    })
+  }
   
   const pageIsLoading = isLoading || !database;
 
@@ -112,8 +120,13 @@ export function AdminWithdrawalsCard() {
                   <TableRow key={tx.id}>
                     <TableCell className="font-medium text-xs">{usersMap.get(tx.userProfileId) || '(مستخدم غير موجود)'}</TableCell>
                     <TableCell>${tx.amount.toFixed(2)}</TableCell>
-                    <TableCell className="font-mono text-xs max-w-[100px] truncate" title={tx.withdrawAddress}>
-                        {tx.withdrawAddress}
+                    <TableCell className="font-mono text-xs">
+                        <div className="flex items-center gap-2">
+                           <span className="break-all">{tx.withdrawAddress}</span>
+                           <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => copyToClipboard(tx.withdrawAddress || '')}>
+                                <Copy className="h-4 w-4" />
+                           </Button>
+                        </div>
                     </TableCell>
                      <TableCell>
                         <Badge
