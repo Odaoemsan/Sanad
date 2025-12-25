@@ -15,11 +15,22 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useDatabase } from "@/firebase";
-import { ref, update } from 'firebase/database';
-import type { UserProfile } from "@/lib/placeholder-data";
+import { ref, update, get, query, orderByChild, equalTo } from 'firebase/database';
+import type { UserProfile, Investment } from "@/lib/placeholder-data";
 import { Button } from "@/components/ui/button";
-import { Mail, Edit, Check, X, Zap, Activity } from "lucide-react";
+import { Mail, Edit, Check, X, Zap, Activity, Ban } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { useAuth } from "@/firebase";
@@ -35,29 +46,36 @@ export function AdminUsersPage() {
   const { allUsers: users, isLoading } = useAdminData();
 
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
-  const [newBalance, setNewBalance] = useState<number>(0);
+  const [editValues, setEditValues] = useState<{ balance: number; claims: number }>({ balance: 0, claims: 0 });
   const [resetingProfitFor, setResetingProfitFor] = useState<string | null>(null);
+  const [cancellingInvestmentFor, setCancellingInvestmentFor] = useState<string | null>(null);
 
 
-  const handleEditBalance = (user: UserProfile) => {
+  const handleEdit = (user: UserProfile) => {
     setEditingUserId(user.id);
-    setNewBalance(user.balance || 0);
+    setEditValues({
+        balance: user.balance || 0,
+        claims: user.dailyProfitClaims || 0
+    });
   };
 
   const handleCancelEdit = () => {
     setEditingUserId(null);
   };
 
-  const handleUpdateBalance = async (userId: string) => {
+  const handleUpdateUser = async (userId: string) => {
     if (!database) return;
     try {
       const userRef = ref(database, `users/${userId}`);
-      await update(userRef, { balance: newBalance });
-      toast({ title: "تم تحديث الرصيد", description: `تم تحديث رصيد المستخدم بنجاح.` });
+      await update(userRef, { 
+          balance: editValues.balance,
+          dailyProfitClaims: editValues.claims
+      });
+      toast({ title: "تم تحديث المستخدم", description: `تم تحديث بيانات المستخدم بنجاح.` });
       setEditingUserId(null);
     } catch (error) {
-      console.error("Error updating balance: ", error);
-      toast({ title: "خطأ", description: "فشل تحديث الرصيد.", variant: "destructive" });
+      console.error("Error updating user: ", error);
+      toast({ title: "خطأ", description: "فشل تحديث المستخدم.", variant: "destructive" });
     }
   };
 
@@ -101,6 +119,51 @@ export function AdminUsersPage() {
     }
   };
   
+    const handleCancelInvestment = async (userId: string) => {
+        if (!database) return;
+        setCancellingInvestmentFor(userId);
+        try {
+            const investmentsRef = ref(database, `users/${userId}/investments`);
+            const q = query(investmentsRef, orderByChild('status'), equalTo('active'));
+            const snapshot = await get(q);
+
+            if (!snapshot.exists()) {
+                toast({ title: "لا يوجد استثمار", description: "هذا المستخدم ليس لديه استثمار نشط لإلغائه.", variant: "destructive" });
+                return;
+            }
+            
+            const updates: { [key: string]: any } = {};
+            let investmentToCancel: Investment | null = null;
+            let investmentId = '';
+            
+            snapshot.forEach(childSnapshot => {
+                investmentId = childSnapshot.key!;
+                investmentToCancel = childSnapshot.val();
+            });
+
+            if (!investmentToCancel || !investmentId) throw new Error('Failed to retrieve active investment.');
+
+            const userRef = ref(database, `users/${userId}`);
+            const userSnap = await get(userRef);
+            if (!userSnap.exists()) throw new Error('User not found');
+            const userProfile = userSnap.val();
+
+            // Prepare updates
+            updates[`users/${userId}/investments/${investmentId}/status`] = 'cancelled';
+            updates[`users/${userId}/balance`] = (userProfile.balance || 0) + investmentToCancel.amount;
+
+            await update(ref(database), updates);
+
+            toast({ title: "تم إلغاء الاستثمار", description: `تمت إعادة مبلغ ${investmentToCancel.amount}$ إلى رصيد المستخدم.`});
+
+        } catch (error) {
+             console.error("Error cancelling investment: ", error);
+             toast({ title: "خطأ", description: "فشل إلغاء الاستثمار.", variant: "destructive" });
+        } finally {
+            setCancellingInvestmentFor(null);
+        }
+    }
+  
   const pageIsLoading = isLoading || !database;
 
   return (
@@ -120,7 +183,7 @@ export function AdminUsersPage() {
               <TableRow>
                 <TableHead>اسم المستخدم</TableHead>
                 <TableHead>البريد الإلكتروني</TableHead>
-                <TableHead>الرصيد</TableHead>
+                <TableHead>الرصيد / أيام الربح</TableHead>
                 <TableHead>تاريخ التسجيل</TableHead>
                 <TableHead>الإجراءات</TableHead>
               </TableRow>
@@ -132,21 +195,37 @@ export function AdminUsersPage() {
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
                     {editingUserId === user.id ? (
-                      <div className="flex items-center gap-2">
-                        <Input 
-                          type="number" 
-                          value={String(newBalance)} 
-                          onChange={(e) => setNewBalance(parseFloat(e.target.value) || 0)} 
-                          className="w-24 h-8"
-                          autoFocus
-                        />
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-green-500" onClick={() => handleUpdateBalance(user.id)}><Check /></Button>
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500" onClick={handleCancelEdit}><X /></Button>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                           <Input 
+                            type="number" 
+                            value={String(editValues.balance)} 
+                            onChange={(e) => setEditValues(v => ({ ...v, balance: parseFloat(e.target.value) || 0 }))} 
+                            className="w-24 h-8"
+                           />
+                           <span className="text-xs text-muted-foreground">الرصيد</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                           <Input 
+                            type="number" 
+                            value={String(editValues.claims)} 
+                            onChange={(e) => setEditValues(v => ({ ...v, claims: parseInt(e.target.value) || 0 }))} 
+                            className="w-24 h-8"
+                           />
+                            <span className="text-xs text-muted-foreground">الأيام</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <Button size="icon" variant="ghost" className="h-8 w-8 text-green-500" onClick={() => handleUpdateUser(user.id)}><Check /></Button>
+                            <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500" onClick={handleCancelEdit}><X /></Button>
+                        </div>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 group">
-                        <span>${(user.balance || 0).toFixed(2)}</span>
-                        <Button size="icon" variant="ghost" className="h-8 w-8 opacity-0 group-hover:opacity-100" onClick={() => handleEditBalance(user)}><Edit /></Button>
+                        <div className="flex flex-col">
+                            <span className="font-semibold">${(user.balance || 0).toFixed(2)}</span>
+                            <span className="text-xs text-muted-foreground">{user.dailyProfitClaims || 0} أيام</span>
+                        </div>
+                        <Button size="icon" variant="ghost" className="h-8 w-8 opacity-0 group-hover:opacity-100" onClick={() => handleEdit(user)}><Edit /></Button>
                       </div>
                     )}
                   </TableCell>
@@ -169,6 +248,32 @@ export function AdminUsersPage() {
                       <Zap className="ml-2 h-4 w-4" />
                        {resetingProfitFor === user.id ? 'جارٍ...' : 'تفعيل الربح'}
                     </Button>
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button
+                            variant="destructive"
+                            size="sm"
+                            disabled={cancellingInvestmentFor === user.id}
+                            >
+                                <Ban className="ml-2 h-4 w-4" />
+                                {cancellingInvestmentFor === user.id ? 'جارٍ...' : 'إلغاء الاستثمار'}
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                سيؤدي هذا إلى إلغاء الاستثمار النشط للمستخدم "{user.username}" وإعادة مبلغ الاستثمار الأصلي إلى رصيده. لا يمكن التراجع عن هذا الإجراء.
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>تراجع</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleCancelInvestment(user.id)}>
+                                نعم، قم بالإلغاء
+                            </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                   </TableCell>
                 </TableRow>
               ))}
