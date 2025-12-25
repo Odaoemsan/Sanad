@@ -1,5 +1,5 @@
 'use client';
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -49,6 +49,16 @@ export function AdminUsersPage() {
   const [editValues, setEditValues] = useState<{ balance: number; claims: number }>({ balance: 0, claims: 0 });
   const [resetingProfitFor, setResetingProfitFor] = useState<string | null>(null);
   const [cancellingInvestmentFor, setCancellingInvestmentFor] = useState<string | null>(null);
+
+  const sortedUsers = useMemo(() => {
+    if (!users) return [];
+    // Sort users by registrationDate in descending order (newest first)
+    return [...users].sort((a, b) => {
+        const dateA = typeof a.registrationDate === 'number' ? a.registrationDate : 0;
+        const dateB = typeof b.registrationDate === 'number' ? b.registrationDate : 0;
+        return dateB - dateA;
+    });
+  }, [users]);
 
 
   const handleEdit = (user: UserProfile) => {
@@ -169,7 +179,7 @@ export function AdminUsersPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>قائمة المستخدمين ({users?.length || 0})</CardTitle>
+        <CardTitle>قائمة المستخدمين ({sortedUsers?.length || 0})</CardTitle>
         <CardDescription>عرض وتعديل بيانات المستخدمين.</CardDescription>
       </CardHeader>
       <CardContent>
@@ -189,7 +199,7 @@ export function AdminUsersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users?.map((user) => (
+              {sortedUsers?.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>{user.username}</TableCell>
                   <TableCell>{user.email}</TableCell>
