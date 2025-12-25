@@ -136,10 +136,8 @@ export default function TransactionsPage() {
                       </TableCell>
                       <TableCell>{format(new Date(transaction.transactionDate), 'yyyy-MM-dd')}</TableCell>
                       <TableCell className="font-mono text-xs text-muted-foreground">
-                        {transaction.type === 'Deposit' && transaction.depositProof ? (
-                          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => window.open(transaction.depositProof, '_blank')}>
-                              <Eye className="h-4 w-4 text-primary" />
-                          </Button>
+                        {transaction.transactionId ? (
+                            <span title={transaction.transactionId}>{transaction.transactionId.substring(0,10)}...</span>
                         ) : (
                           transaction.id.substring(0,10) + '...'
                         )}

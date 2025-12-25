@@ -39,7 +39,7 @@ export type Transaction = {
   paymentGateway?: string;
   userProfileId: string; // Required for all transactions
   investmentId?: string;
-  depositProof?: string; // Data URI of the uploaded image
+  transactionId?: string; // For deposit/withdrawal verification
   withdrawAddress?: string; // For withdrawal
   notes?: string; // For admin adjustments
 };

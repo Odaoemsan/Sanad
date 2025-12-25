@@ -65,7 +65,7 @@ export function AdminDepositsCard() {
         // If a deposit is approved, we perform several actions.
         if (newStatus === 'Completed') {
             const depositorProfile = users.find(u => u.id === transaction.userProfileId);
-            if (!depositorProfile) throw new Error("Depositing user not found in the loaded list");
+            if (!depositorProfile) throw new Error("Depositing user not found");
             
             // 1. Add deposit amount to the user's balance.
             const newBalance = (depositorProfile.balance || 0) + transaction.amount;
@@ -170,7 +170,7 @@ export function AdminDepositsCard() {
                   <TableHead>البريد الإلكتروني</TableHead>
                   <TableHead>المبلغ</TableHead>
                   <TableHead>تاريخ الطلب</TableHead>
-                  <TableHead>الإثبات</TableHead>
+                  <TableHead>معرف المعاملة (TxID)</TableHead>
                   <TableHead>الإجراءات</TableHead>
                 </TableRow>
               </TableHeader>
@@ -180,19 +180,8 @@ export function AdminDepositsCard() {
                     <TableCell className="font-medium text-xs">{usersMap.get(tx.userProfileId)?.email || tx.userProfileId}</TableCell>
                     <TableCell className="font-bold">${tx.amount.toFixed(2)}</TableCell>
                     <TableCell className="text-xs">{format(new Date(tx.transactionDate), 'yyyy-MM-dd p')}</TableCell>
-                    <TableCell>
-                      {tx.depositProof ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => window.open(tx.depositProof, '_blank')}
-                        >
-                          <Eye className="ml-2 h-4 w-4" />
-                          عرض
-                        </Button>
-                      ) : (
-                        'لا يوجد'
-                      )}
+                    <TableCell className="font-mono text-xs max-w-[150px] truncate" title={tx.transactionId}>
+                      {tx.transactionId || 'N/A'}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">

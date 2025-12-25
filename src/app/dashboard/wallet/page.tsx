@@ -23,14 +23,12 @@ function DepositForm() {
     const { user } = useUser();
     const database = useDatabase();
     const { toast } = useToast();
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [amount, setAmount] = useState('');
-    const [proof, setProof] = useState<File | null>(null);
+    const [transactionId, setTransactionId] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const depositAddressRef = useMemoFirebase(() => database ? ref(database, 'settings/depositAddress') : null, [database]);
-    // The data for a direct leaf node in RTDB is just the value itself.
     const { data: depositAddress, isLoading: isLoadingAddress } = useDatabaseObject<string>(depositAddressRef);
 
     const copyToClipboard = () => {
@@ -40,35 +38,10 @@ function DepositForm() {
         }
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            const file = e.target.files[0];
-            // Basic validation for file type and size
-            if (!file.type.startsWith('image/')) {
-                toast({ title: 'ملف غير صالح', description: 'الرجاء اختيار ملف صورة.', variant: 'destructive'});
-                return;
-            }
-            if (file.size > 2 * 1024 * 1024) { // 2MB limit
-                toast({ title: 'الملف كبير جدًا', description: 'الرجاء اختيار ملف أصغر من 2 ميجابايت.', variant: 'destructive'});
-                return;
-            }
-            setProof(file);
-        }
-    };
-    
-    const fileToBase64 = (file: File): Promise<string> => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = error => reject(error);
-        });
-    };
-
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (!user || !database || !proof || !amount) {
-            toast({ title: "بيانات ناقصة", description: "الرجاء ملء جميع الحقول وإرفاق صورة الإثبات.", variant: "destructive" });
+        if (!user || !database || !transactionId || !amount) {
+            toast({ title: "بيانات ناقصة", description: "الرجاء ملء جميع الحقول.", variant: "destructive" });
             return;
         }
 
@@ -81,8 +54,6 @@ function DepositForm() {
                 return;
             }
 
-            const base64Proof = await fileToBase64(proof);
-
             const newTransactionRef = push(ref(database, 'transactions'));
             await set(newTransactionRef, {
                 id: newTransactionRef.key,
@@ -92,7 +63,7 @@ function DepositForm() {
                 status: 'Pending',
                 transactionDate: new Date().toISOString(),
                 paymentGateway: 'USDT_TRC20_Manual',
-                depositProof: base64Proof,
+                transactionId: transactionId,
             });
 
             toast({
@@ -103,8 +74,7 @@ function DepositForm() {
             
             // Reset form
             setAmount('');
-            setProof(null);
-            if(fileInputRef.current) fileInputRef.current.value = '';
+            setTransactionId('');
 
         } catch (error) {
             console.error('Deposit submission failed:', error);
@@ -143,25 +113,20 @@ function DepositForm() {
                         min="1"
                     />
                 </div>
-
-                <div className="grid gap-2">
-                    <Label htmlFor="deposit-proof">إثبات الدفع (صورة)</Label>
-                     <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
-                        <Upload className="ml-2 h-4 w-4" />
-                        {proof ? `تم اختيار الملف: ${proof.name}` : 'اختر صورة الإثبات'}
-                    </Button>
+                
+                 <div className="grid gap-2">
+                    <Label htmlFor="transactionId">معرف المعاملة (TxID)</Label>
                     <Input 
-                        id="deposit-proof"
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                        className="hidden"
-                        accept="image/*"
+                        id="transactionId" 
+                        type="text" 
+                        placeholder="أدخل معرف المعاملة هنا" 
+                        value={transactionId} 
+                        onChange={(e) => setTransactionId(e.target.value)} 
                         required
                     />
                 </div>
                 
-                <Button type="submit" className="w-full" disabled={isSubmitting || !amount || !proof}>
+                <Button type="submit" className="w-full" disabled={isSubmitting || !amount || !transactionId}>
                     {isSubmitting ? 'جارٍ إرسال الطلب...' : 'تأكيد الإيداع'}
                 </Button>
             </form>

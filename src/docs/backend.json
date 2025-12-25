@@ -184,13 +184,13 @@
           "type": "string",
           "description": "The status of the transaction (e.g., Completed, Pending, Failed)."
         },
+        "transactionId": {
+          "type": "string",
+          "description": "External transaction ID (TxID) for deposit verification."
+        },
         "withdrawAddress": {
           "type": "string",
           "description": "Wallet address for a withdrawal request."
-        },
-        "depositProof": {
-          "type": "string",
-          "description": "Data URI of the uploaded deposit proof image."
         }
       },
       "required": [
