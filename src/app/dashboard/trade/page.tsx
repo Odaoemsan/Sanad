@@ -8,7 +8,7 @@ import { useUser, useDatabase, useDatabaseObject, useDatabaseList, useMemoFireba
 import { ref, update, push, serverTimestamp, runTransaction, set, query, orderByChild, equalTo } from 'firebase/database';
 import { CheckCircle, Loader, Clock, Zap, TrendingUp, Gift, Upload, Link as LinkIcon, AlertCircle } from 'lucide-react';
 import type { InvestmentPlan, UserProfile, Investment, Bounty, BountySubmission } from '@/lib/placeholder-data';
-import { addHours, formatDistanceToNowStrict, isBefore, format } from 'date-fns';
+import { addHours, formatDistanceToNowStrict, isBefore, format, isPast, parseISO } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
@@ -163,7 +163,7 @@ function BountySystem() {
     const { data: bounties, isLoading: isLoadingBounties } = useDatabaseList<Bounty>(bountiesRef);
     const { data: userSubmissions, isLoading: isLoadingSubmissions } = useDatabaseList<BountySubmission>(submissionsRef);
     
-    const submittedBountyIds = useMemo(() => new Set(userSubmissions?.filter(s => s.status === 'Pending' || s.status === 'Approved').map(s => s.bountyId)), [userSubmissions]);
+    const submittedBountyIds = useMemo(() => new Set(userSubmissions?.map(s => s.bountyId)), [userSubmissions]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -227,7 +227,10 @@ function BountySystem() {
                      {!isLoading && bounties?.length === 0 && <p className="text-muted-foreground text-center p-4">لا توجد مهام متاحة حاليًا.</p>}
 
                      {bounties?.map(bounty => {
-                         const isCompleted = submittedBountyIds.has(bounty.id);
+                         const hasSubmitted = submittedBountyIds.has(bounty.id);
+                         const isExpired = bounty.createdAt && bounty.durationHours ? isPast(addHours(parseISO(bounty.createdAt), bounty.durationHours)) : false;
+                         const canSubmit = !hasSubmitted && !isExpired;
+
                          return (
                             <Card key={bounty.id} className="bg-muted/30">
                                 <CardHeader>
@@ -237,7 +240,7 @@ function BountySystem() {
                                     </CardTitle>
                                     <CardDescription>{bounty.description}</CardDescription>
                                 </CardHeader>
-                                {!isCompleted && (
+                                {canSubmit && (
                                     <CardFooter className="flex-col items-start gap-2">
                                         <Label htmlFor={`submission-${bounty.id}`}>
                                             {bounty.submissionType === 'link' ? 'أدخل الرابط هنا' : 'ارفع صورة الإثبات'}
@@ -258,9 +261,14 @@ function BountySystem() {
                                         </Button>
                                     </CardFooter>
                                 )}
-                                {isCompleted && (
+                                {hasSubmitted && (
                                     <CardFooter>
-                                         <p className="text-sm text-green-600 font-medium w-full text-center">لقد أكملت هذه المهمة أو أنها قيد المراجعة.</p>
+                                         <p className="text-sm text-green-600 font-medium w-full text-center">لقد قمت بتنفيذ هذه المهمة من قبل.</p>
+                                    </CardFooter>
+                                )}
+                                {isExpired && !hasSubmitted && (
+                                     <CardFooter>
+                                         <p className="text-sm text-destructive font-medium w-full text-center">انتهت صلاحية هذه المهمة.</p>
                                     </CardFooter>
                                 )}
                             </Card>

@@ -41,6 +41,7 @@ export type Transaction = {
   withdrawAddress?: string; // For withdrawal
   notes?: string; // For admin adjustments
   transactionId?: string; // For deposit TxID
+  username?: string; // Denormalized username for display
 };
 
 export type Referral = {
@@ -60,6 +61,7 @@ export type Bounty = {
     submissionType: 'link' | 'image';
     isActive: boolean;
     createdAt: string; // ISO String
+    durationHours: number; // Duration in hours for the bounty to be active
 }
 
 export type BountySubmission = {

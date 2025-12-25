@@ -250,9 +250,10 @@
         "reward": { "type": "number" },
         "submissionType": { "type": "string", "enum": ["link", "image"] },
         "isActive": { "type": "boolean" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" },
+        "durationHours": { "type": "number" }
       },
-      "required": ["id", "title", "reward", "submissionType", "isActive", "createdAt"]
+      "required": ["id", "title", "reward", "submissionType", "isActive", "createdAt", "durationHours"]
     },
     "BountySubmission": {
       "$schema": "http://json-schema.org/draft-07/schema#",

@@ -50,6 +50,7 @@ const initialBountyState: Omit<Bounty, 'id' | 'createdAt'> = {
   reward: 1,
   submissionType: 'link',
   isActive: true,
+  durationHours: 24,
 };
 
 export function AdminBountyCard() {
@@ -88,21 +89,23 @@ export function AdminBountyCard() {
     }
 
     try {
+      const dataToSave = {
+        ...currentBounty,
+        reward: Number(currentBounty.reward),
+        durationHours: Number(currentBounty.durationHours) || 24,
+      };
+
       if (currentBounty.id) {
         // Editing
         const bountyRef = ref(database, `bounties/${currentBounty.id}`);
-        await set(bountyRef, {
-          ...currentBounty,
-          reward: Number(currentBounty.reward),
-        });
+        await set(bountyRef, dataToSave);
         toast({ title: 'تم تحديث المهمة' });
       } else {
         // Creating
         const newBountyRef = push(ref(database, 'bounties'));
         await set(newBountyRef, {
-          ...currentBounty,
+          ...dataToSave,
           id: newBountyRef.key,
-          reward: Number(currentBounty.reward),
           createdAt: new Date().toISOString(),
         });
         toast({ title: 'تم إنشاء المهمة بنجاح' });
@@ -206,6 +209,10 @@ export function AdminBountyCard() {
                         <SelectItem value="image">صورة (Image)</SelectItem>
                     </SelectContent>
                 </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="durationHours" className="text-right">المدة (ساعات)</Label>
+                <Input id="durationHours" name="durationHours" type="number" value={currentBounty.durationHours || 24} onChange={handleChange} className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="isActive" className="text-right">مهمة نشطة</Label>
