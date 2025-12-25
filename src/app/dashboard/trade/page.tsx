@@ -154,6 +154,9 @@ function BountySystem() {
     const { toast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const userProfileRef = useMemoFirebase(() => (database && user) ? ref(database, `users/${user.uid}`) : null, [database, user]);
+    const { data: userProfile } = useDatabaseObject<UserProfile>(userProfileRef);
+
     const [submissionData, setSubmissionData] = useState('');
     const [proofFile, setProofFile] = useState<File | null>(null);
     const [isSubmitting, setIsSubmitting] = useState<string | null>(null);
@@ -182,7 +185,7 @@ function BountySystem() {
     });
 
     const handleSubmit = async (bounty: Bounty) => {
-        if (!user || !database) return;
+        if (!user || !database || !userProfile) return;
         
         let finalSubmissionData = submissionData;
         if (bounty.submissionType === 'image') {
@@ -200,7 +203,7 @@ function BountySystem() {
                 bountyId: bounty.id,
                 bountyTitle: bounty.title,
                 userId: user.uid,
-                userEmail: user.email,
+                username: userProfile.username,
                 status: 'Pending',
                 submissionData: finalSubmissionData,
                 submittedAt: new Date().toISOString(),

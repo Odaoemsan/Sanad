@@ -82,12 +82,12 @@ export function AdminDepositsCard() {
                     updates[`transactions/${l1BonusTxRef.key}`] = {
                         id: l1BonusTxRef.key,
                         userProfileId: l1ReferrerProfile.id,
-                        userEmail: l1ReferrerProfile.email,
+                        username: l1ReferrerProfile.username,
                         type: 'Referral Bonus',
                         amount: l1Bonus,
                         status: 'Completed',
                         transactionDate: new Date().toISOString(),
-                        notes: `Level 1 bonus from ${depositorProfile.email}`
+                        notes: `Level 1 bonus from ${depositorProfile.username}`
                     };
 
                      // Create referral record for L1
@@ -101,7 +101,7 @@ export function AdminDepositsCard() {
                         bonusAmount: l1Bonus,
                     };
 
-                    toast({ title: "مكافأة المستوى الأول", description: `تمت إضافة ${l1Bonus.toFixed(2)}$ إلى ${l1ReferrerProfile.email}`});
+                    toast({ title: "مكافأة المستوى الأول", description: `تمت إضافة ${l1Bonus.toFixed(2)}$ إلى ${l1ReferrerProfile.username}`});
 
                     // LEVEL 2
                     if (l1ReferrerProfile.referrerId) {
@@ -118,14 +118,14 @@ export function AdminDepositsCard() {
                              updates[`transactions/${l2BonusTxRef.key}`] = {
                                 id: l2BonusTxRef.key,
                                 userProfileId: l2ReferrerProfile.id,
-                                userEmail: l2ReferrerProfile.email,
+                                username: l2ReferrerProfile.username,
                                 type: 'Referral Bonus',
                                 amount: l2Bonus,
                                 status: 'Completed',
                                 transactionDate: new Date().toISOString(),
-                                notes: `Level 2 bonus from ${depositorProfile.email}`
+                                notes: `Level 2 bonus from ${depositorProfile.username}`
                              };
-                             toast({ title: "مكافأة المستوى الثاني", description: `تمت إضافة ${l2Bonus.toFixed(2)}$ إلى ${l2ReferrerProfile.email}`});
+                             toast({ title: "مكافأة المستوى الثاني", description: `تمت إضافة ${l2Bonus.toFixed(2)}$ إلى ${l2ReferrerProfile.username}`});
                          }
                     }
                 }
@@ -172,7 +172,7 @@ export function AdminDepositsCard() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>البريد الإلكتروني</TableHead>
+                  <TableHead>اسم المستخدم</TableHead>
                   <TableHead>المبلغ</TableHead>
                   <TableHead>معرف المعاملة (TxID)</TableHead>
                   <TableHead>الحالة</TableHead>
@@ -182,7 +182,7 @@ export function AdminDepositsCard() {
               <TableBody>
                 {depositHistory.map((tx) => (
                   <TableRow key={tx.id}>
-                    <TableCell className="font-medium text-xs">{tx.userEmail || 'غير متوفر'}</TableCell>
+                    <TableCell className="font-medium text-xs">{tx.username || 'غير متوفر'}</TableCell>
                     <TableCell className="font-bold">${tx.amount.toFixed(2)}</TableCell>
                     <TableCell className="font-mono text-xs max-w-[150px] truncate" title={tx.transactionId}>
                       {tx.transactionId || 'N/A'}

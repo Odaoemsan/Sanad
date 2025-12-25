@@ -28,6 +28,9 @@ function DepositForm() {
     const [transactionId, setTransactionId] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const userProfileRef = useMemoFirebase(() => (database && user) ? ref(database, `users/${user.uid}`) : null, [database, user]);
+    const { data: userProfile } = useDatabaseObject<UserProfile>(userProfileRef);
+
     const depositAddressRef = useMemoFirebase(() => database ? ref(database, 'settings/depositAddress') : null, [database]);
     const { data: depositAddress, isLoading: isLoadingAddress } = useDatabaseObject<string>(depositAddressRef);
 
@@ -40,7 +43,7 @@ function DepositForm() {
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (!user || !database || !transactionId || !amount) {
+        if (!user || !database || !transactionId || !amount || !userProfile) {
             toast({ title: "بيانات ناقصة", description: "الرجاء ملء جميع الحقول.", variant: "destructive" });
             return;
         }
@@ -58,7 +61,7 @@ function DepositForm() {
             await set(newTransactionRef, {
                 id: newTransactionRef.key,
                 userProfileId: user.uid,
-                userEmail: user.email,
+                username: userProfile.username,
                 type: 'Deposit',
                 amount: depositAmount,
                 status: 'Pending',
@@ -152,7 +155,7 @@ function WithdrawForm() {
     
     const handleWithdraw = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (!user || !auth || !user.email || isSubmitting || !database) return;
+        if (!user || !auth || !user.email || isSubmitting || !database || !userProfile) return;
 
         const form = e.currentTarget;
         const formData = new FormData(form);
@@ -204,7 +207,7 @@ function WithdrawForm() {
             await set(newTransactionRef, {
                 id: newTransactionRef.key,
                 userProfileId: user.uid,
-                userEmail: user.email,
+                username: userProfile.username,
                 type: 'Withdrawal',
                 amount: amount,
                 transactionDate: new Date().toISOString(),

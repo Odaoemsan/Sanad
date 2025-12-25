@@ -97,7 +97,7 @@ export function AdminWithdrawalsCard() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>البريد الإلكتروني</TableHead>
+                  <TableHead>اسم المستخدم</TableHead>
                   <TableHead>المبلغ</TableHead>
                   <TableHead>العنوان</TableHead>
                   <TableHead>الحالة</TableHead>
@@ -107,7 +107,7 @@ export function AdminWithdrawalsCard() {
               <TableBody>
                 {withdrawalHistory.map((tx) => (
                   <TableRow key={tx.id}>
-                    <TableCell className="font-medium text-xs">{tx.userEmail || 'غير متوفر'}</TableCell>
+                    <TableCell className="font-medium text-xs">{tx.username || 'غير متوفر'}</TableCell>
                     <TableCell>${tx.amount.toFixed(2)}</TableCell>
                     <TableCell className="font-mono text-xs max-w-[100px] truncate" title={tx.withdrawAddress}>
                         {tx.withdrawAddress}

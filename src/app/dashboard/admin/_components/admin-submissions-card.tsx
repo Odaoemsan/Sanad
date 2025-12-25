@@ -66,6 +66,7 @@ export function AdminSubmissionsCard() {
             updates[`transactions/${transactionRef.key}`] = {
                 id: transactionRef.key,
                 userProfileId: submission.userId,
+                username: submission.username,
                 type: 'Bounty Reward',
                 amount: bounty.reward,
                 status: 'Completed',
@@ -105,7 +106,7 @@ export function AdminSubmissionsCard() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>البريد الإلكتروني</TableHead>
+                  <TableHead>اسم المستخدم</TableHead>
                   <TableHead>المهمة</TableHead>
                   <TableHead>الإثبات</TableHead>
                   <TableHead>الإجراءات</TableHead>
@@ -114,7 +115,7 @@ export function AdminSubmissionsCard() {
               <TableBody>
                 {pendingSubmissions.map((sub) => (
                   <TableRow key={sub.id}>
-                    <TableCell className="font-medium text-xs">{sub.userEmail}</TableCell>
+                    <TableCell className="font-medium text-xs">{sub.username}</TableCell>
                     <TableCell className="font-medium text-xs">{sub.bountyTitle}</TableCell>
                     <TableCell>
                       <Button
