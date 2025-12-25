@@ -122,7 +122,7 @@ export function AdminWithdrawalsCard() {
                     <TableCell>${tx.amount.toFixed(2)}</TableCell>
                     <TableCell className="font-mono text-xs">
                         <div className="flex items-center gap-2">
-                           <span className="break-all">{tx.withdrawAddress}</span>
+                           <span className="break-words">{tx.withdrawAddress}</span>
                            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => copyToClipboard(tx.withdrawAddress || '')}>
                                 <Copy className="h-4 w-4" />
                            </Button>
