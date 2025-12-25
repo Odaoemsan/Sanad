@@ -80,15 +80,6 @@ export default function MarketsPage() {
                 <Activity className="h-8 w-8 text-primary" />
                 <h1 className="text-2xl md:text-3xl font-bold tracking-tight">الأسواق</h1>
             </div>
-             <Button
-                variant="outline"
-                size="icon"
-                onClick={() => fetchData()}
-                disabled={isRefreshing || isLoading}
-                className="h-9 w-9"
-            >
-                <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
-            </Button>
         </div>
 
       <Card className="card-glass overflow-hidden bg-gradient-to-br from-primary/80 to-blue-700 text-primary-foreground">
