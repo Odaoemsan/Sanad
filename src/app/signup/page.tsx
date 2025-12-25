@@ -33,9 +33,13 @@ import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z
   .object({
-    fullName: z.string().min(2, { message: 'يجب أن يكون الاسم الكامل حرفين على الأقل.' }),
+    fullName: z.string()
+      .min(2, { message: 'يجب أن يكون الاسم الكامل حرفين على الأقل.' })
+      .regex(/^[a-zA-Z\s]*$/, { message: 'الاسم الكامل يجب أن يحتوي على أحرف إنجليزية ومسافات فقط.' }),
     email: z.string().email({ message: 'الرجاء إدخال عنوان بريد إلكتروني صالح.' }),
-    password: z.string().min(6, { message: 'يجب أن تكون كلمة المرور 6 أحرف على الأقل.' }),
+    password: z.string()
+      .min(6, { message: 'يجب أن تكون كلمة المرور 6 أحرف على الأقل.' })
+      .regex(/^[a-zA-Z0-9]*$/, { message: 'كلمة المرور يجب أن تحتوي على أحرف إنجليزية وأرقام فقط.' }),
     confirmPassword: z.string(),
     referralCode: z.string().optional(),
   })
@@ -150,6 +154,9 @@ function SignupForm() {
                     <FormControl>
                       <Input placeholder="فلان الفلاني" {...field} />
                     </FormControl>
+                     <FormDescription>
+                        الرجاء استخدام أحرف إنجليزية فقط.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -179,6 +186,9 @@ function SignupForm() {
                     <FormControl>
                       <Input type="password" {...field} />
                     </FormControl>
+                     <FormDescription>
+                        استخدم أحرف إنجليزية وأرقام فقط.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -234,5 +244,3 @@ export default function SignupPage() {
     </Suspense>
   )
 }
-
-    
