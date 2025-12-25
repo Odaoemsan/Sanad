@@ -10,7 +10,6 @@ import { CheckCircle, Loader, Clock, Zap, TrendingUp, Gift, Upload, Link as Link
 import type { InvestmentPlan, UserProfile, Investment, Bounty, BountySubmission } from '@/lib/placeholder-data';
 import { addHours, formatDistanceToNowStrict, isBefore, format, isPast, parseISO } from 'date-fns';
 import { ar } from 'date-fns/locale';
-import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
@@ -278,7 +277,7 @@ export default function DailyProfitPage() {
     return (
         <main className="flex flex-1 flex-col gap-8 p-4 sm:px-6 sm:py-0 md:gap-8">
             <DailyProfitClaim />
-            <Separator />
+            <div className="h-px bg-border my-4" />
             <BountySystem />
         </main>
     );
