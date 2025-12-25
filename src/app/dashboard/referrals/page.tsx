@@ -11,7 +11,6 @@ import { ref, get, query, orderByChild, equalTo, update } from 'firebase/databas
 import type { Referral, UserProfile, Transaction, PartnerRank } from "@/lib/placeholder-data";
 import { format } from "date-fns";
 import { useState, useCallback, useMemo } from "react";
-import { Progress } from "@/components/ui/progress";
 
 const BASE_COMMISSION = 1.5;
 
@@ -181,7 +180,7 @@ export default function ReferralsPage() {
                                         <span className="font-medium">التقدم نحو رتبة {nextRank.name}</span>
                                         <span className="font-bold">${(teamTotalDeposit).toLocaleString()} / ${nextRank.goal.toLocaleString()}</span>
                                     </div>
-                                    <Progress value={((teamTotalDeposit) / nextRank.goal) * 100} />
+                                    {/* Progress component removed to simplify UI */}
                                 </div>
                              )}
                             

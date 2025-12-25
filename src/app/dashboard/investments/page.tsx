@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, Calendar, Clock, DollarSign, TrendingUp, Briefcase, Ban, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -22,7 +21,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 type Investment = {
@@ -189,7 +187,7 @@ export default function InvestmentsPage() {
                                         <span>التقدم</span>
                                         <span>{Math.round(activeInvestment.progress)}%</span>
                                     </div>
-                                    <Progress value={activeInvestment.progress} />
+                                    {/* Progress bar removed for consistency with new UI */}
                                 </div>
                                 <div className="grid grid-cols-2 gap-4 text-sm">
                                     <div className="flex items-start gap-2">
@@ -228,47 +226,30 @@ export default function InvestmentsPage() {
                                         عرض سجل المعاملات <ArrowLeft className="mr-2 h-4 w-4" />
                                     </Link>
                                 </Button>
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            {/* The button is wrapped in a span to allow the tooltip to show even when disabled */}
-                                            <span tabIndex={0}> 
-                                                <AlertDialog>
-                                                    <AlertDialogTrigger asChild>
-                                                        <Button variant="destructive" className="w-full" disabled={!activeInvestment.canCancel || isCancelling || activeInvestment.isCompleted}>
-                                                            <Ban className="ml-2 h-4 w-4" />
-                                                            إلغاء الاستثمار
-                                                        </Button>
-                                                    </AlertDialogTrigger>
-                                                    <AlertDialogContent>
-                                                        <AlertDialogHeader>
-                                                        <AlertDialogTitle>هل أنت متأكد تمامًا؟</AlertDialogTitle>
-                                                        <AlertDialogDescription>
-                                                            سيؤدي هذا الإجراء إلى إلغاء استثمارك النشط وإعادة مبلغ الاستثمار الأصلي ({`$${activeInvestment.amount}`}) إلى رصيدك. لن تتمكن من التراجع عن هذا الإجراء.
-                                                        </AlertDialogDescription>
-                                                        </AlertDialogHeader>
-                                                        <AlertDialogFooter>
-                                                        <AlertDialogCancel>تراجع</AlertDialogCancel>
-                                                        <AlertDialogAction onClick={handleCancelInvestment} disabled={isCancelling}>
-                                                            {isCancelling ? 'جار الإلغاء...' : 'نعم، قم بالإلغاء'}
-                                                        </AlertDialogAction>
-                                                        </AlertDialogFooter>
-                                                    </AlertDialogContent>
-                                                </AlertDialog>
-                                            </span>
-                                        </TooltipTrigger>
-                                         {!activeInvestment.canCancel && !activeInvestment.isCompleted && (
-                                            <TooltipContent>
-                                                <p>يمكنك إلغاء الاستثمار بعد مرور 24 ساعة من بدايته.</p>
-                                            </TooltipContent>
-                                        )}
-                                        {activeInvestment.isCompleted && (
-                                            <TooltipContent>
-                                                <p>لا يمكن إلغاء استثمار مكتمل.</p>
-                                            </TooltipContent>
-                                        )}
-                                    </Tooltip>
-                                </TooltipProvider>
+                                
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="destructive" className="w-full" disabled={!activeInvestment.canCancel || isCancelling || activeInvestment.isCompleted}>
+                                            <Ban className="ml-2 h-4 w-4" />
+                                            إلغاء الاستثمار
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                        <AlertDialogTitle>هل أنت متأكد تمامًا؟</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            سيؤدي هذا الإجراء إلى إلغاء استثمارك النشط وإعادة مبلغ الاستثمار الأصلي ({`$${activeInvestment.amount}`}) إلى رصيدك. لن تتمكن من التراجع عن هذا الإجراء.
+                                        </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                        <AlertDialogCancel>تراجع</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleCancelInvestment} disabled={isCancelling}>
+                                            {isCancelling ? 'جار الإلغاء...' : 'نعم، قم بالإلغاء'}
+                                        </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                                
                             </CardFooter>
                         </Card>
                     </div>

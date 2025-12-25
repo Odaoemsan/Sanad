@@ -45,5 +45,3 @@ export function getSdks(firebaseApp: FirebaseApp) {
 export * from './provider';
 export * from './client-provider';
 export * from './database/use-database';
-export * from './errors';
-export * from './error-emitter';
