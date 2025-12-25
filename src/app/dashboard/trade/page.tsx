@@ -122,7 +122,7 @@ function DailyProfitClaim() {
                         username: userProfile.username
                     });
                     setClaimStatus('success');
-                    setTimeout(() => setClaimStatus('claimed'), 3000);
+                    setTimeout(() => setClaimStatus('claimed'), 5000);
                 } else {
                     toast({ title: 'فشل جمع الربح', description: 'لقد قمت بالفعل بجمع الربح خلال الـ 24 ساعة الماضية.', variant: 'destructive' });
                     setClaimStatus('ready');
@@ -162,10 +162,25 @@ function BountySystem() {
     const bountiesRef = useMemoFirebase(() => database ? query(ref(database, 'bounties'), orderByChild('isActive'), equalTo(true)) : null, [database]);
     const submissionsRef = useMemoFirebase(() => (database && user) ? query(ref(database, 'bounty_submissions'), orderByChild('userId'), equalTo(user.uid)) : null, [database]);
 
-    const { data: bounties, isLoading: isLoadingBounties } = useDatabaseList<Bounty>(bountiesRef);
+    const { data: allBounties, isLoading: isLoadingBounties } = useDatabaseList<Bounty>(bountiesRef);
     const { data: userSubmissions, isLoading: isLoadingSubmissions } = useDatabaseList<BountySubmission>(submissionsRef);
     
     const submittedBountyIds = useMemo(() => new Set(userSubmissions?.map(s => s.bountyId)), [userSubmissions]);
+
+    const availableBounties = useMemo(() => {
+        if (!allBounties) return [];
+        return allBounties.filter(bounty => {
+            const hasSubmitted = submittedBountyIds.has(bounty.id);
+            if (hasSubmitted) return false;
+
+            const bountyCreatedAt = typeof bounty.createdAt === 'number' ? bounty.createdAt : Date.now();
+            const expirationDate = addHours(bountyCreatedAt, bounty.durationHours);
+            const isExpired = isPast(expirationDate);
+            
+            return !isExpired;
+        });
+    }, [allBounties, submittedBountyIds]);
+
 
     const handleSubmit = async (bounty: Bounty) => {
         if (!user || !database || !userProfile) return;
@@ -208,14 +223,9 @@ function BountySystem() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                      {isLoading && <p>جاري تحميل المهام...</p>}
-                     {!isLoading && bounties?.length === 0 && <p className="text-muted-foreground text-center p-4">لا توجد مهام متاحة حاليًا.</p>}
+                     {!isLoading && availableBounties.length === 0 && <p className="text-muted-foreground text-center p-4">لا توجد مهام متاحة حاليًا.</p>}
 
-                     {bounties?.map(bounty => {
-                         const hasSubmitted = submittedBountyIds.has(bounty.id);
-                         const bountyCreatedAt = typeof bounty.createdAt === 'number' ? bounty.createdAt : Date.now();
-                         const isExpired = bounty.durationHours ? isPast(addHours(bountyCreatedAt, bounty.durationHours)) : false;
-                         const canSubmit = !hasSubmitted && !isExpired;
-
+                     {availableBounties.map(bounty => {
                          return (
                             <Card key={bounty.id} className="bg-muted/30">
                                 <CardHeader>
@@ -225,25 +235,13 @@ function BountySystem() {
                                     </CardTitle>
                                     <CardDescription>{bounty.description}</CardDescription>
                                 </CardHeader>
-                                {canSubmit && (
-                                    <CardFooter className="flex-col items-start gap-2">
-                                        <Label htmlFor={`submission-${bounty.id}`}>أدخل رابط الإثبات</Label>
-                                        <Input id={`submission-${bounty.id}`} value={submissionData} onChange={(e) => setSubmissionData(e.target.value)} placeholder="https://..." />
-                                        <Button onClick={() => handleSubmit(bounty)} disabled={isSubmitting === bounty.id} className="w-full mt-2">
-                                            {isSubmitting === bounty.id ? 'جارٍ الإرسال...' : 'إرسال للمراجعة'}
-                                        </Button>
-                                    </CardFooter>
-                                )}
-                                {(hasSubmitted && !isExpired) && (
-                                    <CardFooter>
-                                         <p className="text-sm text-green-600 font-medium w-full text-center">لقد قمت بتنفيذ هذه المهمة من قبل.</p>
-                                    </CardFooter>
-                                )}
-                                {isExpired && (
-                                     <CardFooter>
-                                         <p className="text-sm text-destructive font-medium w-full text-center">انتهت صلاحية هذه المهمة.</p>
-                                    </CardFooter>
-                                )}
+                                <CardFooter className="flex-col items-start gap-2">
+                                    <Label htmlFor={`submission-${bounty.id}`}>أدخل رابط الإثبات</Label>
+                                    <Input id={`submission-${bounty.id}`} value={submissionData} onChange={(e) => setSubmissionData(e.target.value)} placeholder="https://..." />
+                                    <Button onClick={() => handleSubmit(bounty)} disabled={isSubmitting === bounty.id} className="w-full mt-2">
+                                        {isSubmitting === bounty.id ? 'جارٍ الإرسال...' : 'إرسال للمراجعة'}
+                                    </Button>
+                                </CardFooter>
                             </Card>
                          )
                      })}
