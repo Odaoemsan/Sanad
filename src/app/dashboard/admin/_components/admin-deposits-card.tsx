@@ -36,35 +36,16 @@ export function AdminDepositsCard() {
   const database = useDatabase();
   const { toast } = useToast();
   
-  // Get ALL transactions first, then filter client-side for deposits
   const allTransactionsRef = useMemoFirebase(() => {
     if (!database) return null;
     return ref(database, 'transactions');
   }, [database]);
 
-  const usersRef = useMemoFirebase(() => database ? ref(database, 'users') : null, [database]);
-
-  const { data: allTransactions, isLoading: transactionsLoading, error } = useDatabaseList<Transaction>(allTransactionsRef);
-  const { data: users, isLoading: usersLoading } = useDatabaseList<UserProfile>(usersRef);
-
-  const usersMap = useMemo(() => {
-    if (!users) return new Map();
-    return users.reduce((acc, user) => {
-      acc.set(user.id, user);
-      return acc;
-    }, new Map<string, UserProfile>());
-  }, [users]);
+  const { data: allTransactions, isLoading, error } = useDatabaseList<Transaction>(allTransactionsRef);
   
  const handleTransaction = async (transaction: Transaction, newStatus: 'Completed' | 'Failed') => {
-    if (!database || !transaction.id) return;
-    
-    // Defensive check for userProfileId structure
-    const userId = typeof transaction.userProfileId === 'object' 
-        ? (transaction.userProfileId as any).uid 
-        : transaction.userProfileId;
-
-    if (!userId) {
-        toast({ title: "خطأ فادح", description: "لم يتم العثور على معرّف المستخدم في المعاملة.", variant: "destructive" });
+    if (!database || !transaction.id || !transaction.userProfileId) {
+        toast({ title: "بيانات ناقصة", description: "المعاملة تفتقد للمعلومات الضرورية.", variant: "destructive" });
         return;
     }
 
@@ -76,14 +57,14 @@ export function AdminDepositsCard() {
 
         // If a deposit is approved, we perform several actions.
         if (newStatus === 'Completed') {
-            const depositorRef = ref(database, `users/${userId}`);
+            const depositorRef = ref(database, `users/${transaction.userProfileId}`);
             const depositorSnap = await get(depositorRef);
             if (!depositorSnap.exists()) throw new Error("Depositing user not found");
             const depositorProfile: UserProfile = depositorSnap.val();
 
             // 1. Add deposit amount to the user's balance.
             const newBalance = (depositorProfile.balance || 0) + transaction.amount;
-            updates[`users/${userId}/balance`] = newBalance;
+            updates[`users/${transaction.userProfileId}/balance`] = newBalance;
 
             // 2. Handle Referral Bonuses
             if (depositorProfile.referrerId) {
@@ -101,6 +82,7 @@ export function AdminDepositsCard() {
                     updates[`transactions/${l1BonusTxRef.key}`] = {
                         id: l1BonusTxRef.key,
                         userProfileId: l1ReferrerProfile.id,
+                        userEmail: l1ReferrerProfile.email,
                         type: 'Referral Bonus',
                         amount: l1Bonus,
                         status: 'Completed',
@@ -136,6 +118,7 @@ export function AdminDepositsCard() {
                              updates[`transactions/${l2BonusTxRef.key}`] = {
                                 id: l2BonusTxRef.key,
                                 userProfileId: l2ReferrerProfile.id,
+                                userEmail: l2ReferrerProfile.email,
                                 type: 'Referral Bonus',
                                 amount: l2Bonus,
                                 status: 'Completed',
@@ -162,9 +145,8 @@ export function AdminDepositsCard() {
     }
   };
   
-  const pageIsLoading = transactionsLoading || usersLoading || !database;
+  const pageIsLoading = isLoading || !database;
 
-  // Filter for deposits on the client side
   const depositHistory = useMemo(() => {
     return allTransactions
       ?.filter(tx => tx.type === 'Deposit')
@@ -198,11 +180,9 @@ export function AdminDepositsCard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {depositHistory.map((tx) => {
-                  const userId = typeof tx.userProfileId === 'object' ? (tx.userProfileId as any).uid : tx.userProfileId;
-                  return (
+                {depositHistory.map((tx) => (
                   <TableRow key={tx.id}>
-                    <TableCell className="font-medium text-xs">{usersMap.get(userId)?.email || userId}</TableCell>
+                    <TableCell className="font-medium text-xs">{tx.userEmail || 'غير متوفر'}</TableCell>
                     <TableCell className="font-bold">${tx.amount.toFixed(2)}</TableCell>
                     <TableCell className="font-mono text-xs max-w-[150px] truncate" title={tx.transactionId}>
                       {tx.transactionId || 'N/A'}
@@ -230,8 +210,7 @@ export function AdminDepositsCard() {
                         )}
                     </TableCell>
                   </TableRow>
-                  )
-                })}
+                ))}
               </TableBody>
             </Table>
           </ScrollArea>

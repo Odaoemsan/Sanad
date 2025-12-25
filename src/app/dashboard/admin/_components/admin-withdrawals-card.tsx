@@ -36,19 +36,7 @@ export function AdminWithdrawalsCard() {
     return ref(database, 'transactions');
   }, [database]);
 
-  const usersRef = useMemoFirebase(() => database ? ref(database, 'users') : null, [database]);
-
-  const { data: allTransactions, isLoading: withdrawalsLoading, error } = useDatabaseList<Transaction>(allTransactionsRef);
-  const { data: users, isLoading: usersLoading } = useDatabaseList<UserProfile>(usersRef);
-
-  const usersMap = useMemo(() => {
-    if (!users) return new Map();
-    return users.reduce((acc, user) => {
-      acc.set(user.id, user);
-      return acc;
-    }, new Map<string, UserProfile>());
-  }, [users]);
-
+  const { data: allTransactions, isLoading, error } = useDatabaseList<Transaction>(allTransactionsRef);
 
   const handleTransaction = async (transaction: Transaction, newStatus: 'Completed' | 'Failed') => {
     if (!database || !transaction.userProfileId || !transaction.id) return;
@@ -82,7 +70,7 @@ export function AdminWithdrawalsCard() {
     }
   };
   
-  const pageIsLoading = withdrawalsLoading || usersLoading || !database;
+  const pageIsLoading = isLoading || !database;
 
   const withdrawalHistory = useMemo(() => {
     return allTransactions
@@ -119,7 +107,7 @@ export function AdminWithdrawalsCard() {
               <TableBody>
                 {withdrawalHistory.map((tx) => (
                   <TableRow key={tx.id}>
-                    <TableCell className="font-medium text-xs">{usersMap.get(tx.userProfileId)?.email || tx.userProfileId}</TableCell>
+                    <TableCell className="font-medium text-xs">{tx.userEmail || 'غير متوفر'}</TableCell>
                     <TableCell>${tx.amount.toFixed(2)}</TableCell>
                     <TableCell className="font-mono text-xs max-w-[100px] truncate" title={tx.withdrawAddress}>
                         {tx.withdrawAddress}

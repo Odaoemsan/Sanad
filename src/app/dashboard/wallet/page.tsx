@@ -58,6 +58,7 @@ function DepositForm() {
             await set(newTransactionRef, {
                 id: newTransactionRef.key,
                 userProfileId: user.uid,
+                userEmail: user.email,
                 type: 'Deposit',
                 amount: depositAmount,
                 status: 'Pending',
@@ -203,6 +204,7 @@ function WithdrawForm() {
             await set(newTransactionRef, {
                 id: newTransactionRef.key,
                 userProfileId: user.uid,
+                userEmail: user.email,
                 type: 'Withdrawal',
                 amount: amount,
                 transactionDate: new Date().toISOString(),

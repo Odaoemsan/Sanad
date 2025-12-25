@@ -38,6 +38,7 @@ export type Transaction = {
   status: 'Completed' | 'Pending' | 'Failed';
   paymentGateway?: string;
   userProfileId: string; // Required for all transactions
+  userEmail?: string; // For easier display in admin panel
   investmentId?: string;
   transactionId?: string; // For deposit/withdrawal verification
   withdrawAddress?: string; // For withdrawal
