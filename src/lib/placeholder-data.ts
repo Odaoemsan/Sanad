@@ -19,6 +19,7 @@ export type UserProfile = {
   referrerId?: string;
   investments?: { [key: string]: Investment };
   referralCode?: string;
+  dailyProfitClaims?: number;
 }
 
 export type Investment = {
@@ -74,3 +75,5 @@ export type BountySubmission = {
     submissionData: string; // Link or text
     submittedAt: number | object;
 }
+
+    

@@ -88,6 +88,7 @@ function SignupForm() {
           balance: 0,
           lastProfitClaim: null,
           referralCode: referralCode,
+          dailyProfitClaims: 0,
         };
         
         if (values.referralCode) {
@@ -233,3 +234,5 @@ export default function SignupPage() {
     </Suspense>
   )
 }
+
+    

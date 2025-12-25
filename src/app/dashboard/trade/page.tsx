@@ -109,6 +109,7 @@ function DailyProfitClaim() {
                         if (typeof lastClaim === 'number' && isBefore(now, addHours(new Date(lastClaim), 24))) return;
                         currentData.balance = (currentData.balance || 0) + totalDailyProfit;
                         currentData.lastProfitClaim = serverTimestamp() as any;
+                        currentData.dailyProfitClaims = (currentData.dailyProfitClaims || 0) + 1; // Increment claim counter
                         return currentData;
                     }
                     return currentData;
@@ -282,3 +283,5 @@ export default function DailyProfitPage() {
         </main>
     );
 }
+
+    

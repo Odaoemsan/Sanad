@@ -6,16 +6,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Wallet, CreditCard, Copy } from "lucide-react";
-import { useState, Suspense } from "react";
+import { Wallet, CreditCard, Copy, AlertTriangle } from "lucide-react";
+import { useState, Suspense, useMemo } from "react";
 import { useUser, useDatabase, useDatabaseObject, useMemoFirebase, useAuth, useDatabaseList } from '@/firebase';
-import { ref, push, set, runTransaction as runDBTransaction, serverTimestamp } from 'firebase/database';
-import type { UserProfile, Investment } from "@/lib/placeholder-data";
+import { ref, push, set, runTransaction as runDBTransaction, serverTimestamp, query, orderByChild, equalTo } from 'firebase/database';
+import type { UserProfile, Investment, Transaction } from "@/lib/placeholder-data";
 import { EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSearchParams } from "next/navigation";
 
 const MIN_WITHDRAWAL_AMOUNT = 50;
+const MIN_PROFIT_CLAIMS = 5;
 
 function DepositForm() {
     const { user } = useUser();
@@ -132,7 +133,7 @@ function DepositForm() {
     )
 }
 
-function WithdrawForm() {
+function WithdrawForm({ isWithdrawalEnabled, reasons }: { isWithdrawalEnabled: boolean; reasons: string[] }) {
     const { user } = useUser();
     const auth = useAuth();
     const database = useDatabase();
@@ -149,7 +150,7 @@ function WithdrawForm() {
     
     const handleWithdraw = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (!user || !auth || !user.email || isSubmitting || !database) return;
+        if (!user || !auth || !user.email || isSubmitting || !database || !isWithdrawalEnabled) return;
 
         const form = e.currentTarget;
         const formData = new FormData(form);
@@ -221,6 +222,21 @@ function WithdrawForm() {
         }
     }
 
+    if (!isWithdrawalEnabled) {
+        return (
+            <div className="text-center p-6 bg-muted/50 rounded-lg space-y-4">
+                <AlertTriangle className="mx-auto h-12 w-12 text-amber-500" />
+                <h3 className="font-bold text-lg">السحب غير متاح حاليًا</h3>
+                <p className="text-sm text-muted-foreground">لتفعيل خاصية السحب، يجب عليك استيفاء الشروط التالية:</p>
+                <ul className="text-sm text-muted-foreground list-disc list-inside text-right space-y-1">
+                    {reasons.map((reason, index) => (
+                        <li key={index}>{reason}</li>
+                    ))}
+                </ul>
+            </div>
+        );
+    }
+
     return (
          <form onSubmit={handleWithdraw} className="space-y-4">
             <div className="grid gap-2">
@@ -258,15 +274,39 @@ function WalletPageContent() {
         if (!user || !database) return null;
         return ref(database, `users/${user.uid}/investments`);
     }, [user, database]);
+    
+    const transactionsRef = useMemoFirebase(() => {
+        if (!user || !database) return null;
+        return query(ref(database, 'transactions'), orderByChild('userProfileId'), equalTo(user.uid));
+    }, [user, database]);
 
     const { data: userProfile, isLoading: isProfileLoading } = useDatabaseObject<UserProfile>(userProfileRef);
     const { data: investmentsData, isLoading: areInvestmentsLoading } = useDatabaseList<Investment>(investmentsRef);
+    const { data: transactionsData, isLoading: areTransactionsLoading } = useDatabaseList<Transaction>(transactionsRef);
 
     const totalInvested = investmentsData?.reduce((sum, investment) => sum + investment.amount, 0) || 0;
     const totalBalance = userProfile?.balance || 0;
-    const availableForWithdrawal = totalBalance;
 
-    const isLoading = !user || !database || isProfileLoading || areInvestmentsLoading;
+    const { isWithdrawalEnabled, reasons } = useMemo(() => {
+        const hasCompletedDeposit = transactionsData?.some(tx => tx.type === 'Deposit' && tx.status === 'Completed') || false;
+        const profitClaims = userProfile?.dailyProfitClaims || 0;
+        const hasEnoughClaims = profitClaims >= MIN_PROFIT_CLAIMS;
+
+        const reasonsList: string[] = [];
+        if (!hasCompletedDeposit) {
+            reasonsList.push("يجب أن يكون لديك إيداع واحد مكتمل على الأقل.");
+        }
+        if (!hasEnoughClaims) {
+            reasonsList.push(`يجب أن تكمل جمع الربح اليومي ${MIN_PROFIT_CLAIMS} مرات (المكتمل: ${profitClaims}).`);
+        }
+
+        return {
+            isWithdrawalEnabled: hasCompletedDeposit && hasEnoughClaims,
+            reasons: reasonsList
+        };
+    }, [transactionsData, userProfile]);
+
+    const isLoading = !user || !database || isProfileLoading || areInvestmentsLoading || areTransactionsLoading;
     const defaultTab = tab === 'withdraw' ? 'withdraw' : 'deposit';
 
     return (
@@ -276,7 +316,7 @@ function WalletPageContent() {
                     <Tabs defaultValue={defaultTab}>
                         <TabsList className="grid w-full grid-cols-2">
                             <TabsTrigger value="deposit">إيداع</TabsTrigger>
-                            <TabsTrigger value="withdraw">سحب</TabsTrigger>
+                            <TabsTrigger value="withdraw" disabled={isLoading}>سحب</TabsTrigger>
                         </TabsList>
                         <TabsContent value="deposit">
                             <Card>
@@ -285,7 +325,7 @@ function WalletPageContent() {
                                         <CreditCard />
                                         إيداع يدوي
                                     </CardTitle>
-                                    <CardDescription>أضف أموالاً إلى حسابك لبدء الاستثمار. تتم مراجعة الإيداعات يدويًا.</CardDescription>
+                                    <CardDescription>أضف أموالاً إلى حسابك لبدء الاستثمار. تتم مراجعة الإيداعات يدويًا وتستغرق الموافقة من ساعة إلى ساعتين كحد أقصى.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
                                     <DepositForm />
@@ -296,10 +336,10 @@ function WalletPageContent() {
                             <Card>
                                 <CardHeader>
                                     <CardTitle>سحب الأموال</CardTitle>
-                                    <CardDescription>حوّل أرباحك إلى محفظتك الشخصية. تتم معالجة عمليات السحب يدويًا للأمان.</CardDescription>
+                                    <CardDescription>حوّل أرباحك إلى محفظتك. تتم معالجة عمليات السحب يدويًا للأمان وقد تستغرق العملية مدة تصل إلى 3 أيام عمل.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <WithdrawForm />
+                                    <WithdrawForm isWithdrawalEnabled={isWithdrawalEnabled} reasons={reasons} />
                                 </CardContent>
                             </Card>
                         </TabsContent>
@@ -326,7 +366,7 @@ function WalletPageContent() {
                                 </div>
                                 <div className="flex justify-between items-baseline">
                                     <span className="text-muted-foreground">متاح للسحب</span>
-                                    <span className="text-lg font-medium text-green-600">${availableForWithdrawal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    <span className="text-lg font-medium text-green-600">${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
                                 <div className="flex justify-between items-baseline">
                                     <span className="text-muted-foreground">مستثمر حاليًا</span>
@@ -349,3 +389,5 @@ export default function WalletPage() {
         </Suspense>
     )
 }
+
+    
