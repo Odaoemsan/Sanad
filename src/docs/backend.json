@@ -48,6 +48,15 @@
         "claimsAtLastWithdrawal": {
           "type": "number",
           "description": "The number of daily profit claims at the time of the last successful withdrawal."
+        },
+        "rank": {
+            "type": "string",
+            "description": "The user's rank in the partner program (e.g., user, representative).",
+            "enum": ["user", "representative"]
+        },
+        "teamTotalDeposit": {
+            "type": "number",
+            "description": "The calculated total deposit of the user's team (L1 + L2)."
         }
       },
       "required": [
@@ -240,6 +249,10 @@
         "bonusAmount": {
           "type": "number",
           "description": "The bonus ammount awarded to the referrer."
+        },
+         "depositAmount": {
+          "type": "number",
+          "description": "The deposit amount from the referred user that triggered this bonus."
         }
       },
       "required": [

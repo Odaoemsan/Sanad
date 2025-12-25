@@ -41,6 +41,7 @@ import {
 
 const L1_COMMISSION_RATE = 0.015; // 1.5%
 const L2_COMMISSION_RATE = 0.01;  // 1%
+const REPRESENTATIVE_COMMISSION_RATE = 0.05; // 5% for Representatives
 
 export function AdminDepositsCard() {
   const database = useDatabase();
@@ -90,7 +91,10 @@ export function AdminDepositsCard() {
                 
                 if (l1ReferrerSnap.exists()) {
                     const l1ReferrerProfile: UserProfile = { ...l1ReferrerSnap.val(), id: l1ReferrerSnap.key };
-                    const l1Bonus = transaction.amount * L1_COMMISSION_RATE;
+                    
+                    const commissionRate = l1ReferrerProfile.rank === 'representative' ? REPRESENTATIVE_COMMISSION_RATE : L1_COMMISSION_RATE;
+                    const l1Bonus = transaction.amount * commissionRate;
+                    
                     updates[`users/${l1ReferrerProfile.id}/balance`] = (l1ReferrerProfile.balance || 0) + l1Bonus;
                     
                     const l1BonusTxRef = push(ref(database, `transactions`));
@@ -112,9 +116,10 @@ export function AdminDepositsCard() {
                         referredUsername: depositorProfile.username,
                         referralDate: serverTimestamp(),
                         bonusAmount: l1Bonus,
+                        depositAmount: transaction.amount,
                     };
 
-                    toast({ title: "مكافأة المستوى الأول", description: `تمت إضافة ${l1Bonus.toFixed(2)}$ إلى ${l1ReferrerProfile.username}`});
+                    toast({ title: `مكافأة المستوى الأول (${commissionRate*100}%)`, description: `تمت إضافة ${l1Bonus.toFixed(2)}$ إلى ${l1ReferrerProfile.username}`});
 
                     // LEVEL 2
                     if (l1ReferrerProfile.referrerId) {

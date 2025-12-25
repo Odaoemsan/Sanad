@@ -21,6 +21,8 @@ export type UserProfile = {
   referralCode?: string;
   dailyProfitClaims?: number;
   claimsAtLastWithdrawal?: number;
+  rank?: 'user' | 'representative';
+  teamTotalDeposit?: number;
 }
 
 export type Investment = {
@@ -52,8 +54,9 @@ export type Referral = {
     referrerId: string;
     referredId: string;
     referredUsername: string;
-    referralDate: string; // ISO String
+    referralDate: number | object; // Can be server timestamp
     bonusAmount: number;
+    depositAmount: number;
 }
 
 export type Bounty = {
