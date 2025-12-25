@@ -56,7 +56,17 @@ export function AdminDepositsCard() {
   }, [users]);
   
  const handleTransaction = async (transaction: Transaction, newStatus: 'Completed' | 'Failed') => {
-    if (!database || !transaction.userProfileId || !transaction.id) return;
+    if (!database || !transaction.id) return;
+    
+    // Defensive check for userProfileId structure
+    const userId = typeof transaction.userProfileId === 'object' 
+        ? (transaction.userProfileId as any).uid 
+        : transaction.userProfileId;
+
+    if (!userId) {
+        toast({ title: "خطأ فادح", description: "لم يتم العثور على معرّف المستخدم في المعاملة.", variant: "destructive" });
+        return;
+    }
 
     try {
         const updates: { [key: string]: any } = {};
@@ -66,14 +76,14 @@ export function AdminDepositsCard() {
 
         // If a deposit is approved, we perform several actions.
         if (newStatus === 'Completed') {
-            const depositorRef = ref(database, `users/${transaction.userProfileId}`);
+            const depositorRef = ref(database, `users/${userId}`);
             const depositorSnap = await get(depositorRef);
             if (!depositorSnap.exists()) throw new Error("Depositing user not found");
             const depositorProfile: UserProfile = depositorSnap.val();
 
             // 1. Add deposit amount to the user's balance.
             const newBalance = (depositorProfile.balance || 0) + transaction.amount;
-            updates[`users/${transaction.userProfileId}/balance`] = newBalance;
+            updates[`users/${userId}/balance`] = newBalance;
 
             // 2. Handle Referral Bonuses
             if (depositorProfile.referrerId) {
@@ -188,9 +198,11 @@ export function AdminDepositsCard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {depositHistory.map((tx) => (
+                {depositHistory.map((tx) => {
+                  const userId = typeof tx.userProfileId === 'object' ? (tx.userProfileId as any).uid : tx.userProfileId;
+                  return (
                   <TableRow key={tx.id}>
-                    <TableCell className="font-medium text-xs">{usersMap.get(tx.userProfileId)?.email || tx.userProfileId}</TableCell>
+                    <TableCell className="font-medium text-xs">{usersMap.get(userId)?.email || userId}</TableCell>
                     <TableCell className="font-bold">${tx.amount.toFixed(2)}</TableCell>
                     <TableCell className="font-mono text-xs max-w-[150px] truncate" title={tx.transactionId}>
                       {tx.transactionId || 'N/A'}
@@ -218,7 +230,8 @@ export function AdminDepositsCard() {
                         )}
                     </TableCell>
                   </TableRow>
-                ))}
+                  )
+                })}
               </TableBody>
             </Table>
           </ScrollArea>
@@ -232,5 +245,3 @@ export function AdminDepositsCard() {
     </Card>
   );
 }
-
-    
