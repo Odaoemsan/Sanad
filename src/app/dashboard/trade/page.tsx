@@ -47,9 +47,15 @@ function DailyProfitClaim() {
     const { data: investments, isLoading: areInvestmentsLoading } = useDatabaseList<Investment>(investmentsRef);
     const { data: investmentPlans, isLoading: arePlansLoading } = useDatabaseList<InvestmentPlan>(investmentPlansRef);
     
+    const isLoading = isProfileLoading || areInvestmentsLoading || arePlansLoading;
+
     useEffect(() => {
         let timer: NodeJS.Timeout | undefined;
-        if (isProfileLoading || !userProfile) return;
+        // Don't run logic until all data is loaded
+        if (isLoading) {
+            setClaimStatus('loading');
+            return;
+        }
 
         if (claimStatus !== 'processing' && claimStatus !== 'success') {
             const now = new Date();
@@ -70,7 +76,7 @@ function DailyProfitClaim() {
             }
         }
         return () => { if (timer) clearInterval(timer); };
-    }, [userProfile, isProfileLoading, claimStatus]);
+    }, [userProfile, isLoading, claimStatus]);
 
     const hasActiveInvestments = investments?.some(inv => inv.status === 'active');
     
@@ -128,9 +134,9 @@ function DailyProfitClaim() {
         }, 20000);
     };
 
-    const isLoading = isProfileLoading || areInvestmentsLoading || arePlansLoading;
+    
     const renderContent = () => {
-        if (isLoading) return <div className="flex flex-col items-center justify-center space-y-4"><Loader className="h-16 w-16 animate-spin text-primary" /><p className="text-muted-foreground">جاري تحميل حالة الربح...</p></div>
+        if (claimStatus === 'loading' || isLoading) return <div className="flex flex-col items-center justify-center space-y-4"><Loader className="h-16 w-16 animate-spin text-primary" /><p className="text-muted-foreground">جاري تحميل حالة الربح...</p></div>
         switch (claimStatus) {
             case 'ready': return <div className="flex flex-col items-center justify-center space-y-6 text-center"><Zap className="h-20 w-20 text-primary" /><h3 className="text-2xl font-bold">أرباحك اليومية جاهزة للجمع!</h3><p className="text-muted-foreground max-w-sm">اضغط على الزر أدناه لبدء عملية التداول اليومي وإضافة أرباحك إلى رصيدك.</p><Button onClick={handleClaimProfit} disabled={!hasActiveInvestments} size="lg" className="w-full max-w-xs">اجمع أرباح اليوم</Button>{!hasActiveInvestments && <p className="text-sm text-destructive">ليس لديك استثمارات نشطة لجمع الأرباح.</p>}</div>;
             case 'processing': return <div className="flex flex-col items-center justify-center space-y-4 text-center"><Loader className="h-16 w-16 animate-spin text-primary" /><h3 className="text-2xl font-bold">عملية التداول جارية...</h3><p className="text-green-500 font-medium max-w-sm h-5 flex items-center gap-2"><TrendingUp className="h-4 w-4" /> {processingMessage}</p></div>;
