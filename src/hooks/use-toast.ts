@@ -158,13 +158,11 @@ function toast({ ...props }: Toast) {
       ...props,
       id,
       open: true,
+      onOpenChange: (open) => {
+        if (!open) dismiss()
+      },
     },
   })
-
-  // Set timeout to dismiss the toast after a delay
-  setTimeout(() => {
-    dismiss()
-  }, TOAST_REMOVE_DELAY)
 
   return {
     id: id,
