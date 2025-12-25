@@ -289,19 +289,33 @@ function WalletPageContent() {
 
     const { isWithdrawalEnabled, reasons } = useMemo(() => {
         const hasCompletedDeposit = transactionsData?.some(tx => tx.type === 'Deposit' && tx.status === 'Completed') || false;
-        const profitClaims = userProfile?.dailyProfitClaims || 0;
-        const hasEnoughClaims = profitClaims >= MIN_PROFIT_CLAIMS;
+        const currentClaims = userProfile?.dailyProfitClaims || 0;
+        const claimsAtLastWithdrawal = userProfile?.claimsAtLastWithdrawal || 0;
+
+        // Condition for first-time withdrawal
+        const hasEnoughInitialClaims = currentClaims >= MIN_PROFIT_CLAIMS;
+        // Condition for subsequent withdrawals
+        const hasEnoughClaimsSinceLastWithdrawal = currentClaims >= claimsAtLastWithdrawal + MIN_PROFIT_CLAIMS;
 
         const reasonsList: string[] = [];
         if (!hasCompletedDeposit) {
             reasonsList.push("يجب أن يكون لديك إيداع واحد مكتمل على الأقل.");
         }
-        if (!hasEnoughClaims) {
-            reasonsList.push(`يجب أن تكمل جمع الربح اليومي ${MIN_PROFIT_CLAIMS} مرات (المكتمل: ${profitClaims}).`);
+
+        if (!userProfile?.claimsAtLastWithdrawal) { // This is the first withdrawal
+             if (!hasEnoughInitialClaims) {
+                reasonsList.push(`يجب أن تكمل جمع الربح اليومي ${MIN_PROFIT_CLAIMS} مرات (المكتمل: ${currentClaims}).`);
+            }
+        } else { // This is a subsequent withdrawal
+             if (!hasEnoughClaimsSinceLastWithdrawal) {
+                const needed = (claimsAtLastWithdrawal + MIN_PROFIT_CLAIMS) - currentClaims;
+                reasonsList.push(`يجب أن تكمل جمع الربح اليومي ${needed} مرة أخرى قبل السحب القادم.`);
+            }
         }
 
+
         return {
-            isWithdrawalEnabled: hasCompletedDeposit && hasEnoughClaims,
+            isWithdrawalEnabled: reasonsList.length === 0,
             reasons: reasonsList
         };
     }, [transactionsData, userProfile]);
@@ -390,4 +404,5 @@ export default function WalletPage() {
     )
 }
 
+    
     

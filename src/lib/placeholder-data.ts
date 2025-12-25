@@ -20,6 +20,7 @@ export type UserProfile = {
   investments?: { [key: string]: Investment };
   referralCode?: string;
   dailyProfitClaims?: number;
+  claimsAtLastWithdrawal?: number;
 }
 
 export type Investment = {
@@ -76,4 +77,5 @@ export type BountySubmission = {
     submittedAt: number | object;
 }
 
+    
     

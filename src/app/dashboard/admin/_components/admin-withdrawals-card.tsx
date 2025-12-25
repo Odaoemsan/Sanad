@@ -45,17 +45,27 @@ export function AdminWithdrawalsCard() {
 
     try {
         const updates: { [key: string]: any } = {};
+        const userRef = ref(database, `users/${transaction.userProfileId}`);
+        const userSnap = await get(userRef);
+        
+        if (!userSnap.exists()) {
+             toast({title: "خطأ فادح", description: `لم يتم العثور على المستخدم ${transaction.userProfileId} لإكمال العملية.`, variant: 'destructive'});
+             // If user doesn't exist, we can't proceed. Set transaction to failed.
+             await update(ref(database, `transactions/${transaction.id}`), { status: 'Failed' });
+             return;
+        }
+        
+        const userProfile: UserProfile = userSnap.val();
 
         if (newStatus === 'Failed' && transaction.type === 'Withdrawal') {
-            const userRef = ref(database, `users/${transaction.userProfileId}`);
-            const userSnap = await get(userRef);
-            if (userSnap.exists()) {
-                 const userProfile: UserProfile = userSnap.val();
-                 const newBalance = (userProfile.balance || 0) + transaction.amount;
-                 updates[`users/${transaction.userProfileId}/balance`] = newBalance;
-            } else {
-                toast({title: "تحذير", description: `لم يتم العثور على المستخدم صاحب الطلب لإعادة الرصيد.`, variant: 'destructive'});
-            }
+             // Refund the balance if the withdrawal fails
+             const newBalance = (userProfile.balance || 0) + transaction.amount;
+             updates[`users/${transaction.userProfileId}/balance`] = newBalance;
+        }
+        
+        if (newStatus === 'Completed' && transaction.type === 'Withdrawal') {
+            // On successful withdrawal, record the number of claims
+            updates[`users/${transaction.userProfileId}/claimsAtLastWithdrawal`] = userProfile.dailyProfitClaims || 0;
         }
 
         updates[`transactions/${transaction.id}/status`] = newStatus;
@@ -74,6 +84,7 @@ export function AdminWithdrawalsCard() {
   };
 
   const copyToClipboard = (text: string) => {
+    if (!text) return;
     navigator.clipboard.writeText(text);
     toast({
         title: "تم النسخ بنجاح",
@@ -165,3 +176,5 @@ export function AdminWithdrawalsCard() {
     </Card>
   );
 }
+
+    

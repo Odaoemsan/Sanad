@@ -44,6 +44,10 @@
         "dailyProfitClaims": {
           "type": "number",
           "description": "The total number of times the user has claimed daily profits."
+        },
+        "claimsAtLastWithdrawal": {
+          "type": "number",
+          "description": "The number of daily profit claims at the time of the last successful withdrawal."
         }
       },
       "required": [
