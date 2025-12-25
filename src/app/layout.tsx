@@ -14,6 +14,8 @@ export const metadata: Metadata = {
   title: 'SNAD - منصة استثمارية عالية العائد',
   description: 'استكشف خطط الاستثمار عالية العائد، وتتبع عوائدك، وقم بتنمية محفظتك مع SNAD.',
   viewport: 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover',
+  manifest: '/manifest.json',
+  themeColor: '#1A73E8',
 };
 
 export default function RootLayout({

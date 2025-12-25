@@ -109,17 +109,63 @@ function DashboardContent() {
 
    if (isLoading) {
     return (
-        <main className="flex flex-1 flex-col items-center justify-center gap-4 p-4 sm:px-6">
-            <div className="flex flex-col items-center gap-4 text-center">
-                <div className="relative h-16 w-16">
-                    <Skeleton className="h-full w-full rounded-full" />
-                    <Activity className="absolute inset-0 m-auto h-8 w-8 text-primary animate-pulse" />
-                </div>
-                <h2 className="text-xl font-semibold">جاري تحميل بياناتك...</h2>
-                <p className="max-w-xs text-muted-foreground">نقوم بإعداد لوحة القيادة الخاصة بك. شكرا لك على انتظارك.</p>
+      <main className="flex flex-1 flex-col gap-6 p-4 sm:px-6">
+        {/* Quick Actions Skeleton */}
+        <div className="w-full">
+            <h2 className="text-lg font-semibold mb-3"><Skeleton className="h-6 w-24" /></h2>
+            <div className="grid grid-cols-4 gap-3">
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
             </div>
-        </main>
-    )
+        </div>
+        
+        {/* Balance Card Skeleton */}
+        <Card className="card-glass">
+            <CardHeader><Skeleton className="h-4 w-20" /></CardHeader>
+            <CardContent><Skeleton className="h-10 w-40" /></CardContent>
+            <CardFooter><Skeleton className="h-10 w-full" /></CardFooter>
+        </Card>
+
+        {/* Analytics Grid Skeleton */}
+        <div className="grid grid-cols-2 gap-4">
+            <Card className="card-glass"><CardHeader><Skeleton className="h-4 w-16" /></CardHeader><CardContent><Skeleton className="h-8 w-24" /></CardContent></Card>
+            <Card className="card-glass"><CardHeader><Skeleton className="h-4 w-20" /></CardHeader><CardContent><Skeleton className="h-8 w-24" /></CardContent></Card>
+        </div>
+
+        {/* Referral Card Skeleton */}
+        <Card className="card-glass">
+            <CardHeader>
+                <Skeleton className="h-5 w-32" />
+                <Skeleton className="h-4 w-48" />
+            </CardHeader>
+            <CardContent><Skeleton className="h-10 w-full" /></CardContent>
+        </Card>
+
+        {/* Recent Transactions Skeleton */}
+        <div className="space-y-4">
+            <div className="flex items-center justify-between">
+                <Skeleton className="h-6 w-36" />
+                <Skeleton className="h-4 w-16" />
+            </div>
+             <div className="space-y-3">
+                 {Array.from({ length: 3 }).map((_, i) => (
+                    <Card key={i} className="card-glass">
+                        <CardContent className="p-3 flex items-center gap-4">
+                            <Skeleton className="h-10 w-10 rounded-full" />
+                            <div className="flex-1 space-y-2">
+                                <Skeleton className="h-4 w-24" />
+                                <Skeleton className="h-3 w-20" />
+                            </div>
+                            <Skeleton className="h-5 w-16" />
+                        </CardContent>
+                    </Card>
+                ))}
+             </div>
+        </div>
+      </main>
+    );
   }
 
   // If user is Admin, redirect them to the admin page
