@@ -60,10 +60,7 @@ export function AdminDepositsCard() {
             const depositorSnap = await get(depositorRef);
             if (!depositorSnap.exists()) {
                  toast({ title: "خطأ فادح", description: `لم يتم العثور على المستخدم صاحب المعرف ${transaction.userProfileId}. قد يكون الحساب قد تم حذفه.`, variant: 'destructive'});
-                 // Optionally, fail the transaction automatically
-                 updates[`transactions/${transaction.id}/status`] = 'Failed';
-                 await update(ref(database), updates);
-                 return;
+                 return; // Do not fail transaction, allow admin to decide.
             }
             const depositorProfile: UserProfile = { ...depositorSnap.val(), id: depositorSnap.key };
 
