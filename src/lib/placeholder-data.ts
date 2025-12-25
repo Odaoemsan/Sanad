@@ -39,9 +39,9 @@ export type Transaction = {
   userProfileId: string; // The UID of the user.
   username?: string; // Denormalized for easier display. Should not be source of truth.
   investmentId?: string;
-  transactionId?: string; // For deposit/withdrawal verification
   withdrawAddress?: string; // For withdrawal
   notes?: string; // For admin adjustments
+  depositProof?: string; // Data URI for deposit proof image
 };
 
 export type Referral = {

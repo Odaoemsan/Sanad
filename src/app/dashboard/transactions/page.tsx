@@ -135,11 +135,20 @@ export default function TransactionsPage() {
                         ${transaction.amount.toFixed(2)}
                       </TableCell>
                       <TableCell>{format(new Date(transaction.transactionDate), 'yyyy-MM-dd')}</TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground">
-                        {transaction.transactionId ? (
-                            <span title={transaction.transactionId}>{transaction.transactionId.substring(0,10)}...</span>
+                      <TableCell>
+                        {transaction.type === 'Deposit' && transaction.depositProof ? (
+                             <Button
+                              variant="outline"
+                              size="sm"
+                              asChild
+                            >
+                               <a href={transaction.depositProof} target="_blank" rel="noopener noreferrer">
+                                    <Eye className="ml-2 h-4 w-4" />
+                                    عرض الإثبات
+                               </a>
+                            </Button>
                         ) : (
-                          transaction.id.substring(0,10) + '...'
+                            <span className="font-mono text-xs text-muted-foreground">{transaction.id.substring(0,10)}...</span>
                         )}
                       </TableCell>
                     </TableRow>

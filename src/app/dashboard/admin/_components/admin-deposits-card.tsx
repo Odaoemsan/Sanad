@@ -20,8 +20,7 @@ import { useDatabase, useDatabaseList, useMemoFirebase } from "@/firebase";
 import { ref, update, get, push } from 'firebase/database';
 import type { Transaction, UserProfile } from "@/lib/placeholder-data";
 import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
-import { Check, X, Inbox, Activity } from "lucide-react";
+import { Check, X, Inbox, Activity, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -35,15 +34,8 @@ export function AdminDepositsCard() {
   const { toast } = useToast();
   
   const allTransactionsRef = useMemoFirebase(() => database ? ref(database, 'transactions') : null, [database]);
-  const allUsersRef = useMemoFirebase(() => database ? ref(database, 'users') : null, [database]);
-
   const { data: allTransactions, isLoading: isLoadingTxs, error } = useDatabaseList<Transaction>(allTransactionsRef);
-  const { data: allUsers, isLoading: isLoadingUsers } = useDatabaseList<UserProfile>(allUsersRef);
   
-  const usersMap = useMemo(() => {
-      if (!allUsers) return new Map<string, string>();
-      return new Map(allUsers.map(user => [user.id, user.username]));
-  }, [allUsers]);
 
  const handleTransaction = async (transaction: Transaction, newStatus: 'Completed' | 'Failed') => {
     if (!database || !transaction.id || !transaction.userProfileId) {
@@ -143,7 +135,7 @@ export function AdminDepositsCard() {
     }
   };
   
-  const pageIsLoading = isLoadingTxs || isLoadingUsers || !database;
+  const pageIsLoading = isLoadingTxs || !database;
 
   const depositHistory = useMemo(() => {
     return allTransactions
@@ -172,7 +164,7 @@ export function AdminDepositsCard() {
                 <TableRow>
                   <TableHead>اسم المستخدم</TableHead>
                   <TableHead>المبلغ</TableHead>
-                  <TableHead>معرف المعاملة (TxID)</TableHead>
+                  <TableHead>الإثبات</TableHead>
                   <TableHead>الحالة</TableHead>
                   <TableHead>الإجراءات</TableHead>
                 </TableRow>
@@ -180,10 +172,23 @@ export function AdminDepositsCard() {
               <TableBody>
                 {depositHistory.map((tx) => (
                   <TableRow key={tx.id}>
-                    <TableCell className="font-medium text-xs">{usersMap.get(tx.userProfileId) || '(مستخدم غير موجود)'}</TableCell>
+                    <TableCell className="font-medium text-xs">{tx.username || '(مستخدم غير موجود)'}</TableCell>
                     <TableCell className="font-bold">${tx.amount.toFixed(2)}</TableCell>
-                    <TableCell className="font-mono text-xs max-w-[150px] truncate" title={tx.transactionId}>
-                      {tx.transactionId || 'N/A'}
+                    <TableCell>
+                      {tx.depositProof ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          asChild
+                        >
+                           <a href={tx.depositProof} target="_blank" rel="noopener noreferrer">
+                                <Eye className="ml-2 h-4 w-4" />
+                                عرض
+                           </a>
+                        </Button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">لا يوجد</span>
+                      )}
                     </TableCell>
                      <TableCell>
                         <Badge
