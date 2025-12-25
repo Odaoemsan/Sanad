@@ -21,7 +21,7 @@ export type UserProfile = {
   referralCode?: string;
   dailyProfitClaims?: number;
   claimsAtLastWithdrawal?: number;
-  rank?: 'user' | 'success-partner' | 'representative';
+  rank?: 'success-partner' | 'representative';
   teamTotalDeposit?: number;
 }
 
@@ -79,4 +79,11 @@ export type BountySubmission = {
     status: 'Pending' | 'Approved' | 'Rejected';
     submissionData: string; // Link or text
     submittedAt: number | object;
+}
+
+export type PartnerRank = {
+    id: 'success-partner' | 'representative';
+    name: string;
+    goal: number; // Total team deposit required
+    commission: number; // Percentage
 }

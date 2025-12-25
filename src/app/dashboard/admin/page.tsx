@@ -12,6 +12,8 @@ import { AdminAnalyticsCard } from "./_components/admin-analytics-card";
 import { AdminBountyCard } from "./_components/admin-bounty-card";
 import { AdminSubmissionsCard } from "./_components/admin-submissions-card";
 import { AdminDataProvider } from "./_components/admin-data-provider";
+import { AdminRanksCard } from "./_components/admin-ranks-card";
+import { AdminPartnersListCard } from "./_components/admin-partners-list-card";
 
 const ADMIN_UID = "eQwg5buDT7b0dtU391R8LZXBtjs1";
 
@@ -32,12 +34,14 @@ function AdminDashboard() {
                         <AdminDepositsCard />
                         <AdminWithdrawalsCard />
                         <AdminSubmissionsCard />
+                        <AdminPartnersListCard />
                     </div>
                     
                     {/* Sidebar for other settings */}
                     <div className="lg:col-span-1 grid auto-rows-max gap-6">
                         <AdminUsersStatsCard />
                         <AdminPlansCard />
+                        <AdminRanksCard />
                         <AdminAnnouncementsCard />
                         <AdminSettingsCard />
                         <AdminBountyCard />

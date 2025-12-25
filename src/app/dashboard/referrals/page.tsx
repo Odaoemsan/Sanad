@@ -8,16 +8,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useUser, useDatabase, useDatabaseList, useDatabaseObject, useMemoFirebase } from "@/firebase";
 import { ref, get, query, orderByChild, equalTo, update } from 'firebase/database';
-import type { Referral, UserProfile, Transaction } from "@/lib/placeholder-data";
+import type { Referral, UserProfile, Transaction, PartnerRank } from "@/lib/placeholder-data";
 import { format } from "date-fns";
 import { useState, useCallback, useMemo } from "react";
 import { Progress } from "@/components/ui/progress";
 
-const RANKS = {
-    user: { name: 'عضو', goal: 0, next: 'success-partner' },
-    'success-partner': { name: 'شريك نجاح', goal: 5000, next: 'representative' },
-    'representative': { name: 'ممثل رسمي', goal: 10000, next: null },
-};
+const BASE_COMMISSION = 1.5;
 
 export default function ReferralsPage() {
     const { user } = useUser();
@@ -39,12 +35,17 @@ export default function ReferralsPage() {
         if (!database) return null;
         return ref(database, `transactions`);
     }, [database]);
+    
+    const ranksRef = useMemoFirebase(() => database ? ref(database, 'partner_ranks') : null, [database]);
 
     const { data: userProfile, isLoading: isLoadingProfile } = useDatabaseObject<UserProfile>(userProfileRef);
     const { data: referralsData, isLoading: isLoadingReferrals } = useDatabaseList<Referral>(referralsRef);
     const { data: allTransactions, isLoading: isLoadingTransactions } = useDatabaseList<Transaction>(transactionsRef);
+    const { data: ranksData, isLoading: isLoadingRanks } = useDatabaseList<PartnerRank>(ranksRef);
     
-    const isLoading = isLoadingProfile || isLoadingReferrals || isLoadingTransactions;
+    const isLoading = isLoadingProfile || isLoadingReferrals || isLoadingTransactions || isLoadingRanks;
+
+    const sortedRanks = useMemo(() => ranksData?.sort((a, b) => a.goal - b.goal) || [], [ranksData]);
 
     const teamTotalDeposit = useMemo(() => {
         if (!user || !referralsData || !allTransactions) return 0;
@@ -65,29 +66,25 @@ export default function ReferralsPage() {
 
 
     const handleCheckRank = async () => {
-        if (!user || !database || !userProfileRef || !userProfile) return;
+        if (!user || !database || !userProfileRef || !userProfile || !sortedRanks.length) return;
         setIsCheckingRank(true);
         
         await update(userProfileRef, { teamTotalDeposit: teamTotalDeposit });
 
-        const currentRank = userProfile.rank || 'user';
-        
-        if (currentRank === 'representative') {
-             toast({ title: "أنت في أعلى رتبة!", description: "لقد وصلت إلى رتبة ممثل رسمي. استمر في العمل الرائع!", className: "bg-blue-500 text-white" });
-        } else if (teamTotalDeposit >= RANKS['representative'].goal) {
-            await update(userProfileRef, { rank: 'representative' });
-            toast({ title: "🎉 تهانينا! تمت ترقيتك!", description: "لقد أصبحت الآن ممثل رسمي وتحصل على عمولة 5% على الإحالات الجديدة.", className: "bg-green-600 border-green-600 text-white" });
-        } else if (teamTotalDeposit >= RANKS['success-partner'].goal) {
-            if (currentRank !== 'success-partner') {
-                 await update(userProfileRef, { rank: 'success-partner' });
-                 toast({ title: "🎉 تهانينا! تمت ترقيتك!", description: "لقد أصبحت الآن شريك نجاح وتحصل على عمولة 3% على الإحالات الجديدة.", className: "bg-green-600 border-green-600 text-white" });
+        const currentRankId = userProfile.rank;
+        const highestAchievedRank = sortedRanks.slice().reverse().find(rank => teamTotalDeposit >= rank.goal);
+
+        if (highestAchievedRank) {
+            if (currentRankId !== highestAchievedRank.id) {
+                await update(userProfileRef, { rank: highestAchievedRank.id });
+                toast({ title: "🎉 تهانينا! تمت ترقيتك!", description: `لقد أصبحت الآن ${highestAchievedRank.name} وتحصل على عمولة ${highestAchievedRank.commission}% على الإحالات الجديدة.`, className: "bg-green-600 border-green-600 text-white" });
             } else {
-                 const remaining = RANKS['representative'].goal - teamTotalDeposit;
-                 toast({ title: "أنت بالفعل شريك نجاح!", description: `واصل العمل! يتبقى لك ${remaining.toFixed(2)}$ للوصول إلى رتبة ممثل رسمي.`, variant: "default" });
+                 toast({ title: `أنت بالفعل ${highestAchievedRank.name}!`, description: `واصل العمل الرائع!`, variant: "default" });
             }
         } else {
-            const remaining = RANKS['success-partner'].goal - teamTotalDeposit;
-            toast({ title: "لم تصل إلى الهدف بعد", description: `واصل العمل! يتبقى لك ${remaining.toFixed(2)}$ للوصول إلى رتبة شريك نجاح.`, variant: "destructive" });
+            const nextRank = sortedRanks[0];
+            const remaining = nextRank.goal - teamTotalDeposit;
+            toast({ title: "لم تصل إلى الهدف بعد", description: `واصل العمل! يتبقى لك ${remaining.toFixed(2)}$ للوصول إلى رتبة ${nextRank.name}.`, variant: "destructive" });
         }
         setIsCheckingRank(false);
     };
@@ -111,9 +108,11 @@ export default function ReferralsPage() {
         { title: "إجمالي العمولة", value: `$${totalCommission.toFixed(2)}`, icon: Users },
     ];
     
-    const currentRankName = RANKS[userProfile?.rank || 'user']?.name || 'عضو';
-    const nextRankKey = RANKS[userProfile?.rank || 'user']?.next;
-    const nextRankGoal = nextRankKey ? RANKS[nextRankKey as keyof typeof RANKS].goal : RANKS['representative'].goal;
+    const currentRank = sortedRanks.find(r => r.id === userProfile?.rank);
+    const currentRankName = currentRank?.name || 'عضو';
+    
+    const currentRankIndex = sortedRanks.findIndex(r => r.id === currentRank?.id);
+    const nextRank = sortedRanks[currentRankIndex + 1];
 
     return (
         <>
@@ -134,43 +133,35 @@ export default function ReferralsPage() {
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="p-4 border rounded-lg bg-muted/30">
-                                    <h3 className="font-bold flex items-center gap-2">
-                                        <Star className="h-5 w-5 text-yellow-500"/>
-                                        رتبة: شريك نجاح
-                                    </h3>
-                                    <p className="text-sm text-muted-foreground mt-1">عندما يصل إجمالي إيداعاتك أنت وفريقك إلى <span className="font-bold text-primary">${RANKS["success-partner"].goal.toLocaleString()}</span>.</p>
-                                    <div className="mt-3 flex items-start gap-2 text-sm">
-                                        <CheckCircle className="h-4 w-4 mt-0.5 text-green-500 shrink-0"/>
-                                        <div><span className="font-semibold">عمولة 3%</span> على جميع إيداعات المستوى الأول.</div>
-                                    </div>
-                                </div>
-                                 <div className="p-4 border rounded-lg bg-muted/30">
-                                    <h3 className="font-bold flex items-center gap-2">
-                                        <Medal className="h-5 w-5 text-blue-500"/>
-                                        رتبة: ممثل رسمي
-                                    </h3>
-                                    <p className="text-sm text-muted-foreground mt-1">عندما يصل إجمالي إيداعاتك أنت وفريقك إلى <span className="font-bold text-primary">${RANKS["representative"].goal.toLocaleString()}</span>.</p>
-                                    <div className="mt-3 space-y-2">
-                                        <div className="flex items-start gap-2 text-sm">
+                                {sortedRanks.map(rank => (
+                                    <div key={rank.id} className="p-4 border rounded-lg bg-muted/30">
+                                        <h3 className="font-bold flex items-center gap-2">
+                                             {rank.id === 'success-partner' && <Star className="h-5 w-5 text-yellow-500"/>}
+                                             {rank.id === 'representative' && <Medal className="h-5 w-5 text-blue-500"/>}
+                                            رتبة: {rank.name}
+                                        </h3>
+                                        <p className="text-sm text-muted-foreground mt-1">عندما يصل إجمالي إيداعاتك أنت وفريقك إلى <span className="font-bold text-primary">${rank.goal.toLocaleString()}</span>.</p>
+                                        <div className="mt-3 flex items-start gap-2 text-sm">
                                             <CheckCircle className="h-4 w-4 mt-0.5 text-green-500 shrink-0"/>
-                                            <div><span className="font-semibold">عمولة 5%</span> على جميع إيداعات المستوى الأول.</div>
+                                            <div><span className="font-semibold">عمولة {rank.commission}%</span> على جميع إيداعات المستوى الأول.</div>
                                         </div>
-                                        <div className="flex items-start gap-2 text-sm">
-                                             <CheckCircle className="h-4 w-4 mt-0.5 text-green-500 shrink-0"/>
-                                             شارة التوثيق الخضراء (✅) بجانب اسمك.
-                                        </div>
+                                         {rank.id === 'representative' && (
+                                            <div className="flex items-start gap-2 text-sm mt-2">
+                                                 <CheckCircle className="h-4 w-4 mt-0.5 text-green-500 shrink-0"/>
+                                                 شارة التوثيق الخضراء (✅) بجانب اسمك.
+                                            </div>
+                                        )}
                                     </div>
-                                </div>
+                                ))}
                             </div>
 
-                             {userProfile?.rank !== 'representative' && (
+                             {nextRank && (
                                <div className="space-y-2">
                                     <div className="flex justify-between items-center text-sm">
-                                        <span className="font-medium">التقدم نحو الرتبة التالية</span>
-                                        <span className="font-bold">${(teamTotalDeposit).toLocaleString()} / ${nextRankGoal.toLocaleString()}</span>
+                                        <span className="font-medium">التقدم نحو رتبة {nextRank.name}</span>
+                                        <span className="font-bold">${(teamTotalDeposit).toLocaleString()} / ${nextRank.goal.toLocaleString()}</span>
                                     </div>
-                                    <Progress value={((teamTotalDeposit) / nextRankGoal) * 100} />
+                                    <Progress value={((teamTotalDeposit) / nextRank.goal) * 100} />
                                 </div>
                              )}
                             
@@ -205,8 +196,8 @@ export default function ReferralsPage() {
                                     <Percent className="h-5 w-5" />
                                 </div>
                                 <div>
-                                    <p className="font-bold">المستوى الأول: عمولة تصل إلى 5%</p>
-                                    <p className="text-muted-foreground">تعتمد عمولتك على رتبتك: عضو (1.5%)، شريك نجاح (3%)، ممثل رسمي (5%).</p>
+                                    <p className="font-bold">المستوى الأول: عمولة تصل إلى {sortedRanks[sortedRanks.length - 1]?.commission || BASE_COMMISSION}%</p>
+                                    <p className="text-muted-foreground">تعتمد عمولتك على رتبتك: عضو ({BASE_COMMISSION}%)، {sortedRanks.map(r => `${r.name} (${r.commission}%)`).join('، ')}.</p>
                                 </div>
                             </div>
                              <div className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg">

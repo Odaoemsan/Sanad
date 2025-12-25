@@ -3,7 +3,7 @@
 import React, { createContext, useContext, ReactNode, useMemo } from 'react';
 import { useDatabase, useDatabaseList, useMemoFirebase } from '@/firebase';
 import { ref } from 'firebase/database';
-import type { Transaction, UserProfile, Investment, InvestmentPlan, Bounty, BountySubmission } from '@/lib/placeholder-data';
+import type { Transaction, UserProfile, Investment, InvestmentPlan, Bounty, BountySubmission, PartnerRank } from '@/lib/placeholder-data';
 
 interface AdminDataContextType {
     allUsers: UserProfile[] | null;
@@ -12,6 +12,7 @@ interface AdminDataContextType {
     allPlans: InvestmentPlan[] | null;
     allBounties: Bounty[] | null;
     allSubmissions: BountySubmission[] | null;
+    allRanks: PartnerRank[] | null;
     usersMap: Map<string, string>;
     isLoading: boolean;
     error: Error | null;
@@ -28,16 +29,18 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
     const allPlansRef = useMemoFirebase(() => database ? ref(database, 'investment_plans') : null, [database]);
     const allBountiesRef = useMemoFirebase(() => database ? ref(database, 'bounties') : null, [database]);
     const allSubmissionsRef = useMemoFirebase(() => database ? ref(database, 'bounty_submissions') : null, [database]);
+    const allRanksRef = useMemoFirebase(() => database ? ref(database, 'partner_ranks') : null, [database]);
 
     const { data: allUsers, isLoading: isLoadingUsers, error: usersError } = useDatabaseList<UserProfile>(allUsersRef);
     const { data: allTransactions, isLoading: isLoadingTxs, error: txsError } = useDatabaseList<Transaction>(allTransactionsRef);
     const { data: allPlans, isLoading: isLoadingPlans, error: plansError } = useDatabaseList<InvestmentPlan>(allPlansRef);
     const { data: allBounties, isLoading: isLoadingBounties, error: bountiesError } = useDatabaseList<Bounty>(allBountiesRef);
     const { data: allSubmissions, isLoading: isLoadingSubmissions, error: submissionsError } = useDatabaseList<BountySubmission>(allSubmissionsRef);
+    const { data: allRanks, isLoading: isLoadingRanks, error: ranksError } = useDatabaseList<PartnerRank>(allRanksRef);
 
     // Combine loading states and errors
-    const isLoading = isLoadingUsers || isLoadingTxs || isLoadingPlans || isLoadingBounties || isLoadingSubmissions;
-    const error = usersError || txsError || plansError || bountiesError || submissionsError;
+    const isLoading = isLoadingUsers || isLoadingTxs || isLoadingPlans || isLoadingBounties || isLoadingSubmissions || isLoadingRanks;
+    const error = usersError || txsError || plansError || bountiesError || submissionsError || ranksError;
 
     // Create a memoized map of user IDs to usernames for quick lookups
     const usersMap = useMemo(() => {
@@ -52,6 +55,7 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
         allPlans,
         allBounties,
         allSubmissions,
+        allRanks,
         usersMap,
         isLoading,
         error,

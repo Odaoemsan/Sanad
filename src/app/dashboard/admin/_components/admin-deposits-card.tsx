@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/card";
 import { useDatabase } from "@/firebase";
 import { ref, update, get, push, serverTimestamp } from 'firebase/database';
-import type { UserProfile } from "@/lib/placeholder-data";
+import type { UserProfile, PartnerRank } from "@/lib/placeholder-data";
 import { Button } from "@/components/ui/button";
 import { Check, X, Inbox, Activity, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -41,8 +41,6 @@ import {
 
 const L1_COMMISSION_RATE = 0.015; // 1.5%
 const L2_COMMISSION_RATE = 0.01;  // 1%
-const SUCCESS_PARTNER_COMMISSION_RATE = 0.03; // 3%
-const REPRESENTATIVE_COMMISSION_RATE = 0.05; // 5%
 
 export function AdminDepositsCard() {
   const database = useDatabase();
@@ -52,6 +50,7 @@ export function AdminDepositsCard() {
     allTransactions, 
     allUsers, 
     usersMap,
+    allRanks,
     isLoading,
     error,
   } = useAdminData();
@@ -97,10 +96,11 @@ export function AdminDepositsCard() {
                     const l1ReferrerProfile: UserProfile = { ...l1ReferrerSnap.val(), id: l1ReferrerSnap.key };
                     
                     let commissionRate = L1_COMMISSION_RATE;
-                    if (l1ReferrerProfile.rank === 'representative') {
-                        commissionRate = REPRESENTATIVE_COMMISSION_RATE;
-                    } else if (l1ReferrerProfile.rank === 'success-partner') {
-                        commissionRate = SUCCESS_PARTNER_COMMISSION_RATE;
+                    if (l1ReferrerProfile.rank && allRanks) {
+                         const rankDetails = allRanks.find(r => r.id === l1ReferrerProfile.rank);
+                         if(rankDetails) {
+                             commissionRate = rankDetails.commission / 100;
+                         }
                     }
                     
                     const l1Bonus = transaction.amount * commissionRate;

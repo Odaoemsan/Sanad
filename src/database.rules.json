@@ -1,9 +1,40 @@
 {
   "rules": {
     ".read": "true",
-    ".write": "true",
+    ".write": "auth != null && auth.uid == 'eQwg5buDT7b0dtU391R8LZXBtjs1'",
     "users": {
-      ".indexOn": ["referralCode"]
+      ".indexOn": ["referralCode"],
+       "$uid": {
+         ".write": "auth != null && auth.uid == $uid"
+       }
+    },
+    "partner_ranks": {
+        ".read": true
+    },
+    "investment_plans": {
+        ".read": true
+    },
+    "announcement": {
+        ".read": true
+    },
+    "settings": {
+        ".read": true
+    },
+    "bounties": {
+        ".read": true
+    },
+    "transactions": {
+        "userProfileId": {
+            ".indexOn": "userProfileId"
+        }
+    },
+    "bounty_submissions": {
+        "userId": {
+            ".indexOn": "userId"
+        },
+        "bountyId": {
+            ".indexOn": "bountyId"
+        }
     }
   }
 }
