@@ -34,15 +34,16 @@ import {
   Line,
   ResponsiveContainer,
 } from "recharts"
-import { AdminDepositsCard } from "./admin/_components/admin-deposits-card";
-import { AdminWithdrawalsCard } from "./admin/_components/admin-withdrawals-card";
-import { AdminPlansCard } from "./admin/_components/admin-plans-card";
-import { AdminAnnouncementsCard } from "./admin/_components/admin-announcements-card";
-import { AdminSettingsCard } from "./admin/_components/admin-settings-card";
-import { AdminUsersStatsCard } from "./admin/_components/admin-users-stats-card";
-import { AdminAnalyticsCard } from './admin/_components/admin-analytics-card';
 import { UserDataProvider, useUserData } from './_components/user-data-provider';
 import type { Transaction } from '@/lib/placeholder-data';
+import { AdminDataProvider } from './admin/_components/admin-data-provider';
+import { AdminAnalyticsCard } from './admin/_components/admin-analytics-card';
+import { AdminDepositsCard } from './admin/_components/admin-deposits-card';
+import { AdminWithdrawalsCard } from './admin/_components/admin-withdrawals-card';
+import { AdminUsersStatsCard } from './admin/_components/admin-users-stats-card';
+import { AdminPlansCard } from './admin/_components/admin-plans-card';
+import { AdminAnnouncementsCard } from './admin/_components/admin-announcements-card';
+import { AdminSettingsCard } from './admin/_components/admin-settings-card';
 
 
 const ADMIN_UID = "eQwg5buDT7b0dtU391R8LZXBtjs1";
@@ -120,32 +121,26 @@ function DashboardContent() {
     )
   }
 
-  // If user is Admin, show Admin Dashboard
+  // If user is Admin, redirect them to the admin page
   if (user?.uid === ADMIN_UID) {
     return (
-      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-          <div className="flex items-center gap-4">
-              <Shield className="h-8 w-8 text-primary" />
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">لوحة تحكم الأدمن</h1>
-          </div>
-          
-          <div className="grid gap-6 lg:grid-cols-3">
-              {/* Main column for actions */}
-              <div className="lg:col-span-2 grid auto-rows-max gap-6">
-                  <AdminAnalyticsCard />
-                  <AdminDepositsCard />
-                  <AdminWithdrawalsCard />
-              </div>
-              
-              {/* Sidebar for other settings */}
-              <div className="lg:col-span-1 grid auto-rows-max gap-6">
-                  <AdminUsersStatsCard />
-                  <AdminPlansCard />
-                  <AdminAnnouncementsCard />
-                  <AdminSettingsCard />
-              </div>
-          </div>
-      </main>
+        <AdminDataProvider>
+             <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+                <div className="flex items-center gap-4">
+                    <Shield className="h-8 w-8 text-primary" />
+                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight">لوحة تحكم الأدمن</h1>
+                </div>
+                <p className="text-muted-foreground">
+                    أهلاً بك في لوحة تحكم الأدمن. يمكنك إدارة المستخدمين والخطط والمعاملات من هنا.
+                </p>
+                <Button asChild>
+                    <Link href="/dashboard/admin">
+                        الانتقال إلى لوحة التحكم الكاملة
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                    </Link>
+                </Button>
+            </main>
+        </AdminDataProvider>
     );
   }
 
