@@ -18,6 +18,17 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -37,12 +48,13 @@ import type { Bounty } from '@/lib/placeholder-data';
 import { PlusCircle, Edit, Trash2, Gift } from 'lucide-react';
 import { format } from 'date-fns';
 
-const initialBountyState: Omit<Bounty, 'id' | 'createdAt' | 'submissionType'> = {
+const initialBountyState: Omit<Bounty, 'id' | 'createdAt'> = {
   title: '',
   description: '',
   reward: 1,
   isActive: true,
   durationHours: 24,
+  submissionType: 'link',
 };
 
 export function AdminBountyCard() {
@@ -113,7 +125,7 @@ export function AdminBountyCard() {
   };
 
   const handleDeleteBounty = async (bountyId: string) => {
-      if (!database || !window.confirm("هل أنت متأكد؟ سيؤدي هذا إلى حذف المهمة بشكل دائم.")) return;
+      if (!database) return;
       try {
           await remove(ref(database, `bounties/${bountyId}`));
           toast({ title: "تم حذف المهمة" });
@@ -157,7 +169,23 @@ export function AdminBountyCard() {
                     <TableCell>{bounty.isActive ? 'نشطة' : 'غير نشطة'}</TableCell>
                     <TableCell className="flex gap-2">
                       <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenModal(bounty)}><Edit className="h-4 w-4" /></Button>
-                      <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => handleDeleteBounty(bounty.id)}><Trash2 className="h-4 w-4" /></Button>
+                       <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                               <Button variant="destructive" size="icon" className="h-8 w-8"><Trash2 className="h-4 w-4" /></Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                سيؤدي هذا إلى حذف المهمة بشكل دائم.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteBounty(bounty.id)}>نعم، قم بالحذف</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                     </TableCell>
                   </TableRow>
                 ))}

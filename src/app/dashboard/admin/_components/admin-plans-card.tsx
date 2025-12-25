@@ -25,6 +25,17 @@ import {
   DialogFooter,
   DialogClose
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { useDatabase, useDatabaseList, useMemoFirebase } from "@/firebase";
 import { ref, set, push, remove } from 'firebase/database';
 import type { InvestmentPlan } from "@/lib/placeholder-data";
@@ -120,7 +131,7 @@ export function AdminPlansCard() {
   };
 
   const handleDeletePlan = async (planId: string) => {
-    if (!database || !window.confirm("هل أنت متأكد أنك تريد حذف هذه الخطة؟ لا يمكن التراجع عن هذا الإجراء.")) return;
+    if (!database) return;
 
     try {
       const planRef = ref(database, `investment_plans/${planId}`);
@@ -168,7 +179,23 @@ export function AdminPlansCard() {
                     <TableCell>{plan.duration} ي</TableCell>
                     <TableCell className="flex gap-2">
                       <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenModal(plan)}><Edit className="h-4 w-4" /></Button>
-                      <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => handleDeletePlan(plan.id)}><Trash2 className="h-4 w-4" /></Button>
+                      <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                               <Button variant="destructive" size="icon" className="h-8 w-8"><Trash2 className="h-4 w-4" /></Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                سيؤدي هذا إلى حذف الخطة بشكل دائم. لا يمكن التراجع عن هذا الإجراء.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeletePlan(plan.id)}>نعم، قم بالحذف</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                     </TableCell>
                   </TableRow>
                 ))}
