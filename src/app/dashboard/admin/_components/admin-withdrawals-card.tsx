@@ -24,19 +24,21 @@ import { format } from "date-fns";
 import { Check, X, Activity, Inbox } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 export function AdminWithdrawalsCard() {
   const database = useDatabase();
   const { toast } = useToast();
   
-  const pendingWithdrawalsRef = useMemoFirebase(() => {
+  const allTransactionsRef = useMemoFirebase(() => {
     if (!database) return null;
-    return query(ref(database, 'transactions'), orderByChild('status'), equalTo('Pending'));
+    return ref(database, 'transactions');
   }, [database]);
 
   const usersRef = useMemoFirebase(() => database ? ref(database, 'users') : null, [database]);
 
-  const { data: pendingTransactions, isLoading: withdrawalsLoading, error } = useDatabaseList<Transaction>(pendingWithdrawalsRef);
+  const { data: allTransactions, isLoading: withdrawalsLoading, error } = useDatabaseList<Transaction>(allTransactionsRef);
   const { data: users, isLoading: usersLoading } = useDatabaseList<UserProfile>(usersRef);
 
   const usersMap = useMemo(() => {
@@ -82,15 +84,18 @@ export function AdminWithdrawalsCard() {
   
   const pageIsLoading = withdrawalsLoading || usersLoading || !database;
 
-  const withdrawalsToReview = useMemo(() => {
-    return pendingTransactions ? pendingTransactions.filter(tx => tx.type === 'Withdrawal') : [];
-  }, [pendingTransactions]);
+  const withdrawalHistory = useMemo(() => {
+    return allTransactions
+        ?.filter(tx => tx.type === 'Withdrawal')
+        .sort((a, b) => new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime()) 
+        || [];
+  }, [allTransactions]);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>طلبات السحب المعلقة ({withdrawalsToReview.length})</CardTitle>
-        <CardDescription>قم بمراجعة والموافقة على أو رفض طلبات السحب المعلقة.</CardDescription>
+        <CardTitle>سجل السحوبات ({withdrawalHistory.length})</CardTitle>
+        <CardDescription>عرض جميع طلبات السحب (المعلقة، المكتملة، والمرفوضة).</CardDescription>
       </CardHeader>
       <CardContent>
         {pageIsLoading ? (
@@ -99,7 +104,7 @@ export function AdminWithdrawalsCard() {
           </div>
          ) : error ? (
           <p className="text-destructive text-center">حدث خطأ أثناء تحميل السحوبات.</p>
-        ) : withdrawalsToReview.length > 0 ? (
+        ) : withdrawalHistory.length > 0 ? (
           <ScrollArea className="h-[400px]">
             <Table>
               <TableHeader>
@@ -107,22 +112,39 @@ export function AdminWithdrawalsCard() {
                   <TableHead>البريد الإلكتروني</TableHead>
                   <TableHead>المبلغ</TableHead>
                   <TableHead>العنوان</TableHead>
+                  <TableHead>الحالة</TableHead>
                   <TableHead>الإجراءات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {withdrawalsToReview.map((tx) => (
+                {withdrawalHistory.map((tx) => (
                   <TableRow key={tx.id}>
                     <TableCell className="font-medium text-xs">{usersMap.get(tx.userProfileId)?.email || tx.userProfileId}</TableCell>
                     <TableCell>${tx.amount.toFixed(2)}</TableCell>
                     <TableCell className="font-mono text-xs max-w-[100px] truncate" title={tx.withdrawAddress}>
                         {tx.withdrawAddress}
                     </TableCell>
+                     <TableCell>
+                        <Badge
+                          className={cn(
+                            "capitalize",
+                            tx.status === 'Completed' && 'bg-green-500/20 text-green-700 border-green-500/20',
+                            tx.status === 'Pending' && 'bg-amber-500/20 text-amber-700 border-amber-500/20',
+                            tx.status === 'Failed' && 'bg-red-500/20 text-red-700 border-red-500/20'
+                          )}
+                        >
+                          {tx.status}
+                        </Badge>
+                      </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button title="موافقة" size="icon" className="h-8 w-8 bg-green-500 hover:bg-green-600" onClick={() => handleTransaction(tx, 'Completed')}><Check /></Button>
-                        <Button title="رفض" size="icon" className="h-8 w-8 bg-red-500 hover:bg-red-600" onClick={() => handleTransaction(tx, 'Failed')}><X /></Button>
-                      </div>
+                      {tx.status === 'Pending' ? (
+                          <div className="flex items-center gap-2">
+                            <Button title="موافقة" size="icon" className="h-8 w-8 bg-green-500 hover:bg-green-600" onClick={() => handleTransaction(tx, 'Completed')}><Check /></Button>
+                            <Button title="رفض" size="icon" className="h-8 w-8 bg-red-500 hover:bg-red-600" onClick={() => handleTransaction(tx, 'Failed')}><X /></Button>
+                          </div>
+                      ) : (
+                          <span className="text-xs text-muted-foreground">تمت المعالجة</span>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -132,7 +154,7 @@ export function AdminWithdrawalsCard() {
         ) : (
           <div className="flex flex-col items-center justify-center text-center p-10 space-y-3">
               <Inbox className="h-12 w-12 text-muted-foreground" />
-              <p className="text-muted-foreground">لا توجد طلبات سحب معلقة حاليًا.</p>
+              <p className="text-muted-foreground">لا يوجد أي سجل سحوبات لعرضه.</p>
           </div>
         )}
       </CardContent>

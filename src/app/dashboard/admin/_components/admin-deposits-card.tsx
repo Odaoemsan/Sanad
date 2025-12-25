@@ -24,6 +24,8 @@ import { format } from "date-fns";
 import { Check, X, Eye, Activity, Inbox } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 
 const L1_COMMISSION_RATE = 0.015; // 1.5%
@@ -34,15 +36,15 @@ export function AdminDepositsCard() {
   const database = useDatabase();
   const { toast } = useToast();
   
-  // Get ALL pending transactions first, then filter client-side
-  const pendingTransactionsRef = useMemoFirebase(() => {
+  // Get ALL transactions first, then filter client-side for deposits
+  const allTransactionsRef = useMemoFirebase(() => {
     if (!database) return null;
-    return query(ref(database, 'transactions'), orderByChild('status'), equalTo('Pending'));
+    return ref(database, 'transactions');
   }, [database]);
 
   const usersRef = useMemoFirebase(() => database ? ref(database, 'users') : null, [database]);
 
-  const { data: pendingTransactions, isLoading: transactionsLoading, error } = useDatabaseList<Transaction>(pendingTransactionsRef);
+  const { data: allTransactions, isLoading: transactionsLoading, error } = useDatabaseList<Transaction>(allTransactionsRef);
   const { data: users, isLoading: usersLoading } = useDatabaseList<UserProfile>(usersRef);
 
   const usersMap = useMemo(() => {
@@ -147,13 +149,18 @@ export function AdminDepositsCard() {
   const pageIsLoading = transactionsLoading || usersLoading || !database;
 
   // Filter for deposits on the client side
-  const depositsToReview = pendingTransactions?.filter(tx => tx.type === 'Deposit') || [];
+  const depositHistory = useMemo(() => {
+    return allTransactions
+      ?.filter(tx => tx.type === 'Deposit')
+      .sort((a, b) => new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime()) 
+      || [];
+  }, [allTransactions]);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>طلبات الإيداع المعلقة ({depositsToReview.length})</CardTitle>
-        <CardDescription>قم بمراجعة والموافقة على أو رفض طلبات الإيداع اليدوية المعلقة.</CardDescription>
+        <CardTitle>سجل الإيداعات ({depositHistory.length})</CardTitle>
+        <CardDescription>عرض جميع طلبات الإيداع (المعلقة، المكتملة، والمرفوضة).</CardDescription>
       </CardHeader>
       <CardContent>
         {pageIsLoading ? (
@@ -162,32 +169,47 @@ export function AdminDepositsCard() {
           </div>
         ) : error ? (
           <p className="text-destructive text-center">حدث خطأ أثناء تحميل الإيداعات.</p>
-        ) : depositsToReview.length > 0 ? (
+        ) : depositHistory.length > 0 ? (
           <ScrollArea className="h-[400px]">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>البريد الإلكتروني</TableHead>
                   <TableHead>المبلغ</TableHead>
-                  <TableHead>تاريخ الطلب</TableHead>
                   <TableHead>معرف المعاملة (TxID)</TableHead>
+                  <TableHead>الحالة</TableHead>
                   <TableHead>الإجراءات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {depositsToReview.map((tx) => (
+                {depositHistory.map((tx) => (
                   <TableRow key={tx.id}>
                     <TableCell className="font-medium text-xs">{usersMap.get(tx.userProfileId)?.email || tx.userProfileId}</TableCell>
                     <TableCell className="font-bold">${tx.amount.toFixed(2)}</TableCell>
-                    <TableCell className="text-xs">{format(new Date(tx.transactionDate), 'yyyy-MM-dd p')}</TableCell>
                     <TableCell className="font-mono text-xs max-w-[150px] truncate" title={tx.transactionId}>
                       {tx.transactionId || 'N/A'}
                     </TableCell>
+                     <TableCell>
+                        <Badge
+                          className={cn(
+                            "capitalize",
+                            tx.status === 'Completed' && 'bg-green-500/20 text-green-700 border-green-500/20',
+                            tx.status === 'Pending' && 'bg-amber-500/20 text-amber-700 border-amber-500/20',
+                            tx.status === 'Failed' && 'bg-red-500/20 text-red-700 border-red-500/20'
+                          )}
+                        >
+                          {tx.status}
+                        </Badge>
+                      </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button title="موافقة" size="icon" className="h-8 w-8 bg-green-500 hover:bg-green-600" onClick={() => handleTransaction(tx, 'Completed')}><Check /></Button>
-                        <Button title="رفض" size="icon" className="h-8 w-8 bg-red-500 hover:bg-red-600" onClick={() => handleTransaction(tx, 'Failed')}><X /></Button>
-                      </div>
+                       {tx.status === 'Pending' ? (
+                          <div className="flex items-center gap-2">
+                            <Button title="موافقة" size="icon" className="h-8 w-8 bg-green-500 hover:bg-green-600" onClick={() => handleTransaction(tx, 'Completed')}><Check /></Button>
+                            <Button title="رفض" size="icon" className="h-8 w-8 bg-red-500 hover:bg-red-600" onClick={() => handleTransaction(tx, 'Failed')}><X /></Button>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">تمت المعالجة</span>
+                        )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -197,7 +219,7 @@ export function AdminDepositsCard() {
         ) : (
           <div className="flex flex-col items-center justify-center text-center p-10 space-y-3">
               <Inbox className="h-12 w-12 text-muted-foreground" />
-              <p className="text-muted-foreground">لا توجد طلبات إيداع معلقة حاليًا.</p>
+              <p className="text-muted-foreground">لا يوجد أي سجل إيداعات لعرضه.</p>
           </div>
         )}
       </CardContent>
