@@ -56,7 +56,7 @@ export function AdminDepositsCard() {
   }, [users]);
   
  const handleTransaction = async (transaction: Transaction, newStatus: 'Completed' | 'Failed') => {
-    if (!database || !transaction.userProfileId || !transaction.id || !users) return;
+    if (!database || !transaction.userProfileId || !transaction.id) return;
 
     try {
         const updates: { [key: string]: any } = {};
@@ -66,9 +66,11 @@ export function AdminDepositsCard() {
 
         // If a deposit is approved, we perform several actions.
         if (newStatus === 'Completed') {
-            const depositorProfile = users.find(u => u.id === transaction.userProfileId);
-            if (!depositorProfile) throw new Error("Depositing user not found");
-            
+            const depositorRef = ref(database, `users/${transaction.userProfileId}`);
+            const depositorSnap = await get(depositorRef);
+            if (!depositorSnap.exists()) throw new Error("Depositing user not found");
+            const depositorProfile: UserProfile = depositorSnap.val();
+
             // 1. Add deposit amount to the user's balance.
             const newBalance = (depositorProfile.balance || 0) + transaction.amount;
             updates[`users/${transaction.userProfileId}/balance`] = newBalance;
@@ -76,9 +78,11 @@ export function AdminDepositsCard() {
             // 2. Handle Referral Bonuses
             if (depositorProfile.referrerId) {
                 // LEVEL 1
-                const l1ReferrerProfile = users.find(u => u.id === depositorProfile.referrerId);
+                const l1ReferrerRef = ref(database, `users/${depositorProfile.referrerId}`);
+                const l1ReferrerSnap = await get(l1ReferrerRef);
                 
-                if (l1ReferrerProfile) {
+                if (l1ReferrerSnap.exists()) {
+                    const l1ReferrerProfile: UserProfile = l1ReferrerSnap.val();
                     const l1Bonus = transaction.amount * L1_COMMISSION_RATE;
                     updates[`users/${l1ReferrerProfile.id}/balance`] = (l1ReferrerProfile.balance || 0) + l1Bonus;
                     
@@ -109,9 +113,11 @@ export function AdminDepositsCard() {
 
                     // LEVEL 2
                     if (l1ReferrerProfile.referrerId) {
-                         const l2ReferrerProfile = users.find(u => u.id === l1ReferrerProfile.referrerId);
+                        const l2ReferrerRef = ref(database, `users/${l1ReferrerProfile.referrerId}`);
+                        const l2ReferrerSnap = await get(l2ReferrerRef);
 
-                         if (l2ReferrerProfile) {
+                         if (l2ReferrerSnap.exists()) {
+                             const l2ReferrerProfile: UserProfile = l2ReferrerSnap.val();
                              const l2Bonus = transaction.amount * L2_COMMISSION_RATE;
                              updates[`users/${l2ReferrerProfile.id}/balance`] = (l2ReferrerProfile.balance || 0) + l2Bonus;
 
@@ -226,3 +232,5 @@ export function AdminDepositsCard() {
     </Card>
   );
 }
+
+    
