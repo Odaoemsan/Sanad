@@ -37,7 +37,7 @@ export default function TransactionsPage() {
   
   const { data: transactionsData, isLoading } = useDatabaseList<Transaction>(transactionsRef);
 
-  const sortedTransactions = transactionsData?.sort((a, b) => new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime()) || [];
+  const sortedTransactions = transactionsData?.sort((a, b) => (typeof b.transactionDate === 'number' ? b.transactionDate : 0) - (typeof a.transactionDate === 'number' ? a.transactionDate : 0)) || [];
 
   const exportToCSV = () => {
     const headers = ['النوع', 'الحالة', 'المبلغ', 'التاريخ', 'معرف المعاملة'];
@@ -46,8 +46,8 @@ export default function TransactionsPage() {
       ...sortedTransactions.map(t => [
         t.type,
         t.status,
-        (t.type === 'Deposit' || t.type === 'Profit' || t.type === 'Referral Bonus' ? '+' : '-') + t.amount.toFixed(2),
-        format(new Date(t.transactionDate), 'yyyy-MM-dd pp'),
+        (t.type === 'Deposit' || t.type === 'Profit' || t.type === 'Referral Bonus' || t.type === 'Bounty Reward' ? '+' : '-') + t.amount.toFixed(2),
+        typeof t.transactionDate === 'number' ? format(new Date(t.transactionDate), 'yyyy-MM-dd pp') : 'N/A',
         t.id
       ].join(','))
     ].join('\n');
@@ -122,6 +122,7 @@ export default function TransactionsPage() {
                           "text-left font-medium",
                           transaction.type === "Deposit" ||
                             transaction.type === "Profit" ||
+                            transaction.type === "Bounty Reward" ||
                             transaction.type === "Referral Bonus"
                             ? "text-green-600"
                             : "text-red-600"
@@ -129,12 +130,13 @@ export default function TransactionsPage() {
                       >
                         {transaction.type === "Deposit" ||
                         transaction.type === "Profit" ||
+                        transaction.type === "Bounty Reward" ||
                         transaction.type === "Referral Bonus"
                           ? "+"
                           : "-"}
                         ${transaction.amount.toFixed(2)}
                       </TableCell>
-                      <TableCell>{format(new Date(transaction.transactionDate), 'yyyy-MM-dd')}</TableCell>
+                      <TableCell>{typeof transaction.transactionDate === 'number' ? format(new Date(transaction.transactionDate), 'yyyy-MM-dd') : 'N/A'}</TableCell>
                       <TableCell>
                          <p className="font-mono text-xs text-muted-foreground max-w-[100px] truncate" title={transaction.transactionId || transaction.id}>
                             {transaction.transactionId || transaction.id}

@@ -132,7 +132,7 @@ export default function ReferralsPage() {
                                     {referralsData && referralsData.length > 0 ? referralsData.map(ref => (
                                         <TableRow key={ref.id}>
                                             <TableCell className="font-medium">{ref.referredUsername || 'N/A'}</TableCell>
-                                            <TableCell>{ref.referralDate ? format(new Date(ref.referralDate), 'yyyy-MM-dd') : 'N/A'}</TableCell>
+                                            <TableCell>{typeof ref.referralDate === 'number' ? format(new Date(ref.referralDate), 'yyyy-MM-dd') : 'N/A'}</TableCell>
                                             <TableCell className="text-left text-green-600 font-medium">+${(ref.bonusAmount || 0).toFixed(2)}</TableCell>
                                         </TableRow>
                                     )) : (

@@ -7,7 +7,7 @@ import { ArrowLeft, Calendar, Clock, DollarSign, TrendingUp, Briefcase, Ban, Ale
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useUser, useDatabase, useDatabaseList, useMemoFirebase } from "@/firebase";
-import { ref, update, get } from "firebase/database";
+import { ref, update, get, serverTimestamp } from "firebase/database";
 import { differenceInDays, format, isAfter, parseISO, addHours, differenceInHours, isPast } from "date-fns";
 import type { InvestmentPlan, UserProfile } from "@/lib/placeholder-data";
 import { useToast } from '@/hooks/use-toast';

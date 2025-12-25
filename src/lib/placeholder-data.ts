@@ -41,7 +41,6 @@ export type Transaction = {
   withdrawAddress?: string; // For withdrawal
   notes?: string; // For admin adjustments
   transactionId?: string; // For deposit TxID
-  username?: string; // Denormalized username for display
 };
 
 export type Referral = {
@@ -72,5 +71,4 @@ export type BountySubmission = {
     status: 'Pending' | 'Approved' | 'Rejected';
     submissionData: string; // Link or Data URI for image
     submittedAt: string; // ISO String. Equivalent to createdAt
-    username?: string; // Denormalized for display
 }

@@ -118,7 +118,7 @@ function DailyProfitClaim() {
                     const transactionRef = push(ref(database, `transactions`));
                     await set(transactionRef, {
                         id: transactionRef.key, type: 'Profit', amount: totalDailyProfit,
-                        transactionDate: new Date().toISOString(), status: 'Completed', userProfileId: user.uid
+                        transactionDate: serverTimestamp(), status: 'Completed', userProfileId: user.uid
                     });
                     setClaimStatus('success');
                     setTimeout(() => setClaimStatus('claimed'), 3000);
@@ -201,7 +201,7 @@ function BountySystem() {
                 userId: user.uid,
                 status: 'Pending',
                 submissionData: finalSubmissionData,
-                submittedAt: new Date().toISOString(),
+                submittedAt: serverTimestamp(),
             });
             toast({ title: 'تم إرسال المهمة بنجاح', description: 'سيتم مراجعتها من قبل الإدارة.' });
             setSubmissionData('');
@@ -228,7 +228,8 @@ function BountySystem() {
 
                      {bounties?.map(bounty => {
                          const hasSubmitted = submittedBountyIds.has(bounty.id);
-                         const isExpired = bounty.createdAt && bounty.durationHours ? isPast(addHours(parseISO(bounty.createdAt), bounty.durationHours)) : false;
+                         const bountyCreatedAt = typeof bounty.createdAt === 'number' ? bounty.createdAt : (bounty.createdAt ? parseISO(bounty.createdAt).getTime() : Date.now());
+                         const isExpired = bounty.durationHours ? isPast(addHours(bountyCreatedAt, bounty.durationHours)) : false;
                          const canSubmit = !hasSubmitted && !isExpired;
 
                          return (
@@ -281,11 +282,11 @@ function BountySystem() {
                  <Card>
                     <CardHeader><CardTitle>سجل مهامي</CardTitle></CardHeader>
                     <CardContent>
-                         {userSubmissions.sort((a,b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()).map(sub => (
+                         {userSubmissions.sort((a,b) => (typeof b.submittedAt === 'number' ? b.submittedAt : 0) - (typeof a.submittedAt === 'number' ? a.submittedAt : 0)).map(sub => (
                             <div key={sub.id} className="flex justify-between items-center p-2 border-b">
                                 <div>
                                     <p className="font-semibold">{sub.bountyTitle}</p>
-                                    <p className="text-xs text-muted-foreground">{format(new Date(sub.submittedAt), 'yyyy-MM-dd')}</p>
+                                    <p className="text-xs text-muted-foreground">{typeof sub.submittedAt === 'number' ? format(new Date(sub.submittedAt), 'yyyy-MM-dd') : 'قيد التحديد'}</p>
                                 </div>
                                 <Badge variant={sub.status === 'Approved' ? 'default' : sub.status === 'Rejected' ? 'destructive' : 'secondary'}
                                 className={cn(sub.status === 'Approved' && 'bg-green-500/20 text-green-700', sub.status === 'Rejected' && 'bg-red-500/20 text-red-700')}>

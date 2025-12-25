@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Wallet, CreditCard, Copy } from "lucide-react";
 import { useState, Suspense } from "react";
 import { useUser, useDatabase, useDatabaseObject, useMemoFirebase, useAuth, useDatabaseList } from '@/firebase';
-import { ref, push, set, runTransaction as runDBTransaction } from 'firebase/database';
+import { ref, push, set, runTransaction as runDBTransaction, serverTimestamp } from 'firebase/database';
 import type { UserProfile, Investment } from "@/lib/placeholder-data";
 import { EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -59,7 +59,7 @@ function DepositForm() {
                 type: 'Deposit',
                 amount: depositAmount,
                 status: 'Pending',
-                transactionDate: new Date().toISOString(),
+                transactionDate: serverTimestamp(),
                 paymentGateway: 'USDT_TRC20_Manual',
                 transactionId: transactionId,
             });
@@ -193,7 +193,7 @@ function WithdrawForm() {
                 userProfileId: user.uid,
                 type: 'Withdrawal',
                 amount: amount,
-                transactionDate: new Date().toISOString(),
+                transactionDate: serverTimestamp(),
                 status: 'Pending',
                 paymentGateway: 'USDT_BEP20',
                 withdrawAddress: address.trim()

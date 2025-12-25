@@ -80,7 +80,7 @@ export function AdminWithdrawalsCard() {
   const withdrawalHistory = useMemo(() => {
     return allTransactions
         ?.filter(tx => tx.type === 'Withdrawal')
-        .sort((a, b) => new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime()) 
+        .sort((a, b) => (typeof b.transactionDate === 'number' ? b.transactionDate : 0) - (typeof a.transactionDate === 'number' ? a.transactionDate : 0)) 
         || [];
   }, [allTransactions]);
 

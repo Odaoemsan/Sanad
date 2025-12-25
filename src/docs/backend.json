@@ -265,12 +265,11 @@
         "bountyId": { "type": "string" },
         "bountyTitle": { "type": "string" },
         "userId": { "type": "string" },
-        "username": { "type": "string" },
         "status": { "type": "string", "enum": ["Pending", "Approved", "Rejected"] },
         "submissionData": { "type": "string" },
         "submittedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "bountyId", "bountyTitle", "userId", "username", "status", "submissionData", "submittedAt"]
+      "required": ["id", "bountyId", "bountyTitle", "userId", "status", "submissionData", "submittedAt"]
     }
   },
   "auth": {

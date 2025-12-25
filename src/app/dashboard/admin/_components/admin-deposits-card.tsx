@@ -17,7 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useDatabase, useDatabaseList, useMemoFirebase } from "@/firebase";
-import { ref, update, get, push } from 'firebase/database';
+import { ref, update, get, push, serverTimestamp } from 'firebase/database';
 import type { Transaction, UserProfile } from "@/lib/placeholder-data";
 import { Button } from "@/components/ui/button";
 import { Check, X, Inbox, Activity } from "lucide-react";
@@ -89,7 +89,7 @@ export function AdminDepositsCard() {
                         type: 'Referral Bonus',
                         amount: l1Bonus,
                         status: 'Completed',
-                        transactionDate: new Date().toISOString(),
+                        transactionDate: serverTimestamp(),
                         notes: `Level 1 bonus from ${depositorProfile.username}`
                     };
 
@@ -99,7 +99,7 @@ export function AdminDepositsCard() {
                         referrerId: l1ReferrerProfile.id,
                         referredId: depositorProfile.id,
                         referredUsername: depositorProfile.username,
-                        referralDate: new Date().toISOString(),
+                        referralDate: serverTimestamp(),
                         bonusAmount: l1Bonus,
                     };
 
@@ -122,7 +122,7 @@ export function AdminDepositsCard() {
                                 type: 'Referral Bonus',
                                 amount: l2Bonus,
                                 status: 'Completed',
-                                transactionDate: new Date().toISOString(),
+                                transactionDate: serverTimestamp(),
                                 notes: `Level 2 bonus from ${depositorProfile.username}`
                              };
                              toast({ title: "مكافأة المستوى الثاني", description: `تمت إضافة ${l2Bonus.toFixed(2)}$ إلى ${l2ReferrerProfile.username}`});
@@ -150,7 +150,7 @@ export function AdminDepositsCard() {
   const depositHistory = useMemo(() => {
     return allTransactions
       ?.filter(tx => tx.type === 'Deposit')
-      .sort((a, b) => new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime()) 
+      .sort((a, b) => (typeof b.transactionDate === 'number' ? b.transactionDate : 0) - (typeof a.transactionDate === 'number' ? a.transactionDate : 0)) 
       || [];
   }, [allTransactions]);
 

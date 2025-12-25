@@ -150,7 +150,7 @@ export function AdminUsersPage() {
                       </div>
                     )}
                   </TableCell>
-                  <TableCell>{user.registrationDate ? format(new Date(user.registrationDate), 'yyyy-MM-dd') : 'N/A'}</TableCell>
+                  <TableCell>{typeof user.registrationDate === 'number' ? format(new Date(user.registrationDate), 'yyyy-MM-dd') : 'N/A'}</TableCell>
                   <TableCell className="flex flex-wrap gap-2">
                     <Button
                       variant="outline"

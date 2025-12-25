@@ -17,7 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useDatabase, useDatabaseList, useMemoFirebase } from "@/firebase";
-import { ref, update, get, push } from 'firebase/database';
+import { ref, update, get, push, serverTimestamp } from 'firebase/database';
 import type { BountySubmission, Bounty, UserProfile } from "@/lib/placeholder-data";
 import { Button } from "@/components/ui/button";
 import { Check, X, Eye, Activity, Inbox, Link as LinkIcon } from "lucide-react";
@@ -80,7 +80,7 @@ export function AdminSubmissionsCard() {
                 type: 'Bounty Reward',
                 amount: bounty.reward,
                 status: 'Completed',
-                transactionDate: new Date().toISOString(),
+                transactionDate: serverTimestamp(),
                 notes: `Reward for completing bounty: ${submission.bountyTitle}`
             };
         }

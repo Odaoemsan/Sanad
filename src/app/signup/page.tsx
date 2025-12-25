@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/form';
 import { useAuth, useDatabase } from '@/firebase';
 import { createUserWithEmailAndPassword, updateProfile, UserCredential } from 'firebase/auth';
-import { ref, set, get, query, orderByChild, equalTo, limitToFirst } from 'firebase/database';
+import { ref, set, get, query, orderByChild, equalTo, limitToFirst, serverTimestamp } from 'firebase/database';
 import { useRouter } from 'next/navigation';
 import { Suspense, useEffect } from 'react';
 import { useUser } from '@/firebase';
@@ -84,7 +84,7 @@ function SignupForm() {
           id: authUser.uid,
           username: values.fullName,
           email: authUser.email,
-          registrationDate: new Date().toISOString(),
+          registrationDate: serverTimestamp(),
           balance: 0,
           lastProfitClaim: null,
           referralCode: referralCode,

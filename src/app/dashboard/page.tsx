@@ -115,6 +115,7 @@ export default function DashboardPage() {
       case 'Deposit':
       case 'Profit':
       case 'Referral Bonus':
+      case 'Bounty Reward':
         return <ArrowDownRight className="h-5 w-5 text-green-500" />;
       case 'Withdrawal':
       case 'Investment':
@@ -124,7 +125,7 @@ export default function DashboardPage() {
     }
   };
 
-  const recentTransactions = transactionsData?.sort((a, b) => new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime()).slice(0, 5) || [];
+  const recentTransactions = transactionsData?.sort((a, b) => (typeof b.transactionDate === 'number' ? b.transactionDate : 0) - (typeof a.transactionDate === 'number' ? a.transactionDate : 0)).slice(0, 5) || [];
   
 
    if (isLoading) {
@@ -253,13 +254,13 @@ export default function DashboardPage() {
                           </div>
                           <div className="flex-1">
                               <p className="font-semibold">{transaction.type}</p>
-                              <p className="text-xs text-muted-foreground">{format(new Date(transaction.transactionDate), 'MMM dd, yyyy')}</p>
+                              <p className="text-xs text-muted-foreground">{typeof transaction.transactionDate === 'number' ? format(new Date(transaction.transactionDate), 'MMM dd, yyyy') : 'N/A'}</p>
                           </div>
                           <div className={cn(
                               'font-bold text-right',
-                              transaction.type === 'Deposit' || transaction.type === 'Profit' || transaction.type === 'Referral Bonus' ? 'text-green-500' : 'text-foreground'
+                              transaction.type === 'Deposit' || transaction.type === 'Profit' || transaction.type === 'Referral Bonus' || transaction.type === 'Bounty Reward' ? 'text-green-500' : 'text-foreground'
                           )}>
-                              {transaction.type === 'Deposit' || transaction.type === 'Profit' || transaction.type === 'Referral Bonus' ? '+' : '-'}${transaction.amount.toFixed(2)}
+                              {transaction.type === 'Deposit' || transaction.type === 'Profit' || transaction.type === 'Referral Bonus' || transaction.type === 'Bounty Reward' ? '+' : '-'}${transaction.amount.toFixed(2)}
                           </div>
                       </CardContent>
                   </Card>
