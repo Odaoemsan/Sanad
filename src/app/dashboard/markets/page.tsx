@@ -42,10 +42,14 @@ export default function MarketsPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
 
-  const fetchData = useCallback(async () => {
-    if(!isLoading) setIsRefreshing(true);
+  const fetchData = useCallback(async (isRefresh = false) => {
+    if (isRefresh) {
+      setIsRefreshing(true);
+    } else {
+      setIsLoading(true);
+    }
     try {
-      const response = await fetch(API_URL);
+      const response = await fetch(API_URL, { cache: 'no-store' });
       if (!response.ok) {
         throw new Error('فشل جلب البيانات من API. الرجاء المحاولة مرة أخرى.');
       }
@@ -59,11 +63,11 @@ export default function MarketsPage() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [isLoading]);
+  }, []);
 
   useEffect(() => {
     fetchData(); // Fetch on initial load
-    const interval = setInterval(fetchData, 60000); // Refresh every 60 seconds
+    const interval = setInterval(() => fetchData(true), 60000); // Refresh every 60 seconds
     return () => clearInterval(interval); // Cleanup on unmount
   }, [fetchData]);
   

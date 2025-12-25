@@ -38,6 +38,7 @@ import { UserDataProvider, useUserData } from './_components/user-data-provider'
 import type { Transaction } from '@/lib/placeholder-data';
 import { AdminDataProvider } from './admin/_components/admin-data-provider';
 import { SocialProofTicker } from '@/components/social-proof-ticker';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 const ADMIN_UID = "eQwg5buDT7b0dtU391R8LZXBtjs1";
@@ -108,10 +109,16 @@ function DashboardContent() {
 
    if (isLoading) {
     return (
-      <main className="flex flex-1 flex-col items-center justify-center gap-4 p-4 sm:px-6">
-          <Activity className="h-16 w-16 text-primary animate-pulse" />
-          <p className="text-muted-foreground">جاري تحميل بيانات لوحة القيادة...</p>
-      </main>
+        <main className="flex flex-1 flex-col items-center justify-center gap-4 p-4 sm:px-6">
+            <div className="flex flex-col items-center gap-4 text-center">
+                <div className="relative h-16 w-16">
+                    <Skeleton className="h-full w-full rounded-full" />
+                    <Activity className="absolute inset-0 m-auto h-8 w-8 text-primary animate-pulse" />
+                </div>
+                <h2 className="text-xl font-semibold">جاري تحميل بياناتك...</h2>
+                <p className="max-w-xs text-muted-foreground">نقوم بإعداد لوحة القيادة الخاصة بك. شكرا لك على انتظارك.</p>
+            </div>
+        </main>
     )
   }
 
