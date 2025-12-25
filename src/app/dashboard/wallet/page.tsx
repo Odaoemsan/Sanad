@@ -81,7 +81,6 @@ function DepositForm() {
             await set(newTransactionRef, {
                 id: newTransactionRef.key,
                 userProfileId: user.uid,
-                username: user.displayName,
                 type: 'Deposit',
                 amount: depositAmount,
                 status: 'Pending',

@@ -34,8 +34,16 @@ export function AdminDepositsCard() {
   const { toast } = useToast();
   
   const allTransactionsRef = useMemoFirebase(() => database ? ref(database, 'transactions') : null, [database]);
+  const allUsersRef = useMemoFirebase(() => database ? ref(database, 'users') : null, [database]);
+
   const { data: allTransactions, isLoading: isLoadingTxs, error } = useDatabaseList<Transaction>(allTransactionsRef);
+  const { data: allUsers, isLoading: isLoadingUsers } = useDatabaseList<UserProfile>(allUsersRef);
   
+  const usersMap = useMemo(() => {
+      if (!allUsers) return new Map<string, string>();
+      return new Map(allUsers.map(user => [user.id, user.username]));
+  }, [allUsers]);
+
 
  const handleTransaction = async (transaction: Transaction, newStatus: 'Completed' | 'Failed') => {
     if (!database || !transaction.id || !transaction.userProfileId) {
@@ -135,7 +143,7 @@ export function AdminDepositsCard() {
     }
   };
   
-  const pageIsLoading = isLoadingTxs || !database;
+  const pageIsLoading = isLoadingTxs || isLoadingUsers || !database;
 
   const depositHistory = useMemo(() => {
     return allTransactions
@@ -172,7 +180,7 @@ export function AdminDepositsCard() {
               <TableBody>
                 {depositHistory.map((tx) => (
                   <TableRow key={tx.id}>
-                    <TableCell className="font-medium text-xs">{tx.username || '(مستخدم غير موجود)'}</TableCell>
+                    <TableCell className="font-medium text-xs">{usersMap.get(tx.userProfileId) || '(مستخدم غير موجود)'}</TableCell>
                     <TableCell className="font-bold">${tx.amount.toFixed(2)}</TableCell>
                     <TableCell>
                       {tx.depositProof ? (

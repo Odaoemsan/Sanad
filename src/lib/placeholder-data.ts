@@ -37,7 +37,6 @@ export type Transaction = {
   transactionDate: string; // ISO String. Equivalent to createdAt
   status: 'Completed' | 'Pending' | 'Failed';
   userProfileId: string; // The UID of the user.
-  username?: string; // Denormalized for easier display. Should not be source of truth.
   investmentId?: string;
   withdrawAddress?: string; // For withdrawal
   notes?: string; // For admin adjustments
