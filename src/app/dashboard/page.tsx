@@ -37,13 +37,7 @@ import {
 import { UserDataProvider, useUserData } from './_components/user-data-provider';
 import type { Transaction } from '@/lib/placeholder-data';
 import { AdminDataProvider } from './admin/_components/admin-data-provider';
-import { AdminAnalyticsCard } from './admin/_components/admin-analytics-card';
-import { AdminDepositsCard } from './admin/_components/admin-deposits-card';
-import { AdminWithdrawalsCard } from './admin/_components/admin-withdrawals-card';
-import { AdminUsersStatsCard } from './admin/_components/admin-users-stats-card';
-import { AdminPlansCard } from './admin/_components/admin-plans-card';
-import { AdminAnnouncementsCard } from './admin/_components/admin-announcements-card';
-import { AdminSettingsCard } from './admin/_components/admin-settings-card';
+import { SocialProofTicker } from '@/components/social-proof-ticker';
 
 
 const ADMIN_UID = "eQwg5buDT7b0dtU391R8LZXBtjs1";
@@ -251,6 +245,10 @@ function DashboardContent() {
               )}
           </div>
       </div>
+      
+      {/* Social Proof Ticker */}
+      <SocialProofTicker />
+
     </main>
   );
 }
