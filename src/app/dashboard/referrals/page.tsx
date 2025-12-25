@@ -19,7 +19,6 @@ export default function ReferralsPage() {
     const { user } = useUser();
     const database = useDatabase();
     const { toast } = useToast();
-    const [isCheckingRank, setIsCheckingRank] = useState(false);
 
     const userProfileRef = useMemoFirebase(() => {
         if (!user || !database) return null;
@@ -54,63 +53,6 @@ export default function ReferralsPage() {
         { title: "إجمالي العمولة", value: `$${totalCommission.toFixed(2)}`, icon: Users },
     ];
     
-    const checkAndUpgradeRank = useCallback(async () => {
-        if (!database || !user) return;
-        setIsCheckingRank(true);
-
-        try {
-            // 1. Get L1 referrals
-            const l1ReferralsSnap = await get(query(ref(database, 'users'), orderByChild('referrerId'), equalTo(user.uid)));
-            if (!l1ReferralsSnap.exists()) {
-                toast({ title: "لا يوجد فريق بعد", description: "ليس لديك أي إحالات مباشرة حتى الآن."});
-                return;
-            }
-            const l1Referrals: UserProfile[] = Object.values(l1ReferralsSnap.val());
-            const l1Ids = l1Referrals.map(r => r.id);
-
-            // 2. Get L2 referrals
-            let l2Ids: string[] = [];
-            for (const l1Id of l1Ids) {
-                const l2ReferralsSnap = await get(query(ref(database, 'users'), orderByChild('referrerId'), equalTo(l1Id)));
-                if (l2ReferralsSnap.exists()) {
-                    const l2Referrals: UserProfile[] = Object.values(l2ReferralsSnap.val());
-                    l2Ids.push(...l2Referrals.map(r => r.id));
-                }
-            }
-            
-            const teamIds = [user.uid, ...l1Ids, ...l2Ids];
-            let totalDeposit = 0;
-
-            // 3. Get all transactions and sum deposits
-            const transactionsSnap = await get(ref(database, 'transactions'));
-            if(transactionsSnap.exists()){
-                const allTransactions: Transaction[] = Object.values(transactionsSnap.val());
-                totalDeposit = allTransactions
-                    .filter(tx => teamIds.includes(tx.userProfileId) && tx.type === 'Deposit' && tx.status === 'Completed')
-                    .reduce((sum, tx) => sum + tx.amount, 0);
-            }
-            
-             // 4. Update user rank if goal is met
-            const userRef = ref(database, `users/${user.uid}`);
-            await update(userRef, { teamTotalDeposit: totalDeposit });
-
-            if (totalDeposit >= RANK_GOAL && userProfile?.rank !== 'representative') {
-                await update(userRef, { rank: 'representative' });
-                toast({ title: "تهانينا! لقد تمت ترقيتك!", description: "لقد أصبحت الآن 'ممثل رسمي' وستحصل على عمولات أعلى.", className: "bg-green-600 text-white border-green-600" });
-            } else if (userProfile?.rank === 'representative') {
-                 toast({ title: "أنت بالفعل ممثل رسمي!", description: `إجمالي إيداعات فريقك: $${totalDeposit.toLocaleString()}` });
-            } else {
-                 toast({ title: "استمر في التقدم!", description: `لقد حقق فريقك $${totalDeposit.toLocaleString()} من أصل $${RANK_GOAL.toLocaleString()}.` });
-            }
-
-        } catch (error) {
-            console.error("Rank check failed:", error);
-            toast({ title: "خطأ", description: "فشل التحقق من الرتبة. حاول مرة أخرى.", variant: "destructive" });
-        } finally {
-            setIsCheckingRank(false);
-        }
-    }, [database, user, userProfile]);
-
     return (
         <>
             <main className="flex flex-1 flex-col gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
@@ -155,10 +97,11 @@ export default function ReferralsPage() {
                                 </div>
                                 <Progress value={((userProfile?.teamTotalDeposit || 0) / RANK_GOAL) * 100} />
                             </div>
-
-                             <Button onClick={checkAndUpgradeRank} disabled={isCheckingRank} className="w-full">
-                                {isCheckingRank ? 'جاري التحقق...' : 'التحقق من أهليتي للترقية'}
-                            </Button>
+                             {userProfile?.rank === 'representative' && (
+                                <div className="text-center font-bold text-green-600 bg-green-500/10 p-3 rounded-md">
+                                    تهانينا! أنت ممثل رسمي.
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
 

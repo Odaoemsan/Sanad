@@ -42,6 +42,7 @@ import {
 const L1_COMMISSION_RATE = 0.015; // 1.5%
 const L2_COMMISSION_RATE = 0.01;  // 1%
 const REPRESENTATIVE_COMMISSION_RATE = 0.05; // 5% for Representatives
+const RANK_GOAL = 10000;
 
 export function AdminDepositsCard() {
   const database = useDatabase();
@@ -83,7 +84,7 @@ export function AdminDepositsCard() {
             const newBalance = (depositorProfile.balance || 0) + transaction.amount;
             updates[`users/${transaction.userProfileId}/balance`] = newBalance;
 
-            // 2. Handle Referral Bonuses
+            // 2. Handle Referral Bonuses & Team Deposit Updates
             if (depositorProfile.referrerId) {
                 // LEVEL 1
                 const l1ReferrerRef = ref(database, `users/${depositorProfile.referrerId}`);
@@ -95,7 +96,18 @@ export function AdminDepositsCard() {
                     const commissionRate = l1ReferrerProfile.rank === 'representative' ? REPRESENTATIVE_COMMISSION_RATE : L1_COMMISSION_RATE;
                     const l1Bonus = transaction.amount * commissionRate;
                     
+                    // Update L1 referrer's balance
                     updates[`users/${l1ReferrerProfile.id}/balance`] = (l1ReferrerProfile.balance || 0) + l1Bonus;
+                    
+                    // Update L1 referrer's team deposit total
+                    const l1NewTeamDeposit = (l1ReferrerProfile.teamTotalDeposit || 0) + transaction.amount;
+                    updates[`users/${l1ReferrerProfile.id}/teamTotalDeposit`] = l1NewTeamDeposit;
+
+                    // Check for L1 Rank upgrade
+                    if (l1NewTeamDeposit >= RANK_GOAL && l1ReferrerProfile.rank !== 'representative') {
+                        updates[`users/${l1ReferrerProfile.id}/rank`] = 'representative';
+                         toast({ title: `🎉 ترقية!`, description: `تمت ترقية ${l1ReferrerProfile.username} إلى ممثل رسمي!`, className: "bg-green-600 text-white border-green-600" });
+                    }
                     
                     const l1BonusTxRef = push(ref(database, `transactions`));
                     updates[`transactions/${l1BonusTxRef.key}`] = {
@@ -129,7 +141,20 @@ export function AdminDepositsCard() {
                          if (l2ReferrerSnap.exists()) {
                              const l2ReferrerProfile: UserProfile = { ...l2ReferrerSnap.val(), id: l2ReferrerSnap.key };
                              const l2Bonus = transaction.amount * L2_COMMISSION_RATE;
+                             
+                             // Update L2 referrer's balance
                              updates[`users/${l2ReferrerProfile.id}/balance`] = (l2ReferrerProfile.balance || 0) + l2Bonus;
+                             
+                             // Update L2 referrer's team deposit total
+                            const l2NewTeamDeposit = (l2ReferrerProfile.teamTotalDeposit || 0) + transaction.amount;
+                            updates[`users/${l2ReferrerProfile.id}/teamTotalDeposit`] = l2NewTeamDeposit;
+
+                            // Check for L2 Rank upgrade
+                            if (l2NewTeamDeposit >= RANK_GOAL && l2ReferrerProfile.rank !== 'representative') {
+                                updates[`users/${l2ReferrerProfile.id}/rank`] = 'representative';
+                                toast({ title: `🎉 ترقية!`, description: `تمت ترقية ${l2ReferrerProfile.username} إلى ممثل رسمي!`, className: "bg-green-600 text-white border-green-600" });
+                            }
+
 
                              const l2BonusTxRef = push(ref(database, `transactions`));
                              updates[`transactions/${l2BonusTxRef.key}`] = {
