@@ -25,11 +25,12 @@ import {
 } from '@/components/ui/form';
 import { useAuth, useDatabase } from '@/firebase';
 import { createUserWithEmailAndPassword, updateProfile, UserCredential } from 'firebase/auth';
-import { ref, set, get, query, orderByChild, equalTo, limitToFirst, serverTimestamp } from 'firebase/database';
+import { ref, set, get, query, orderByChild, equalTo, serverTimestamp } from 'firebase/database';
 import { useRouter } from 'next/navigation';
 import { Suspense, useEffect } from 'react';
 import { useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
+import type { UserProfile } from '@/lib/placeholder-data';
 
 const formSchema = z
   .object({
@@ -79,20 +80,22 @@ function SignupForm() {
       const userCredential: UserCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const authUser = userCredential.user;
 
-      // This should always run now
       if (authUser) {
         await updateProfile(authUser, { displayName: values.fullName });
 
         const referralCode = authUser.uid.substring(0, 8).toUpperCase();
-        const userProfileData: any = {
+        
+        const userProfileData: UserProfile = {
           id: authUser.uid,
           username: values.fullName,
-          email: authUser.email,
-          registrationDate: serverTimestamp(),
+          email: authUser.email!,
+          registrationDate: serverTimestamp() as any,
           balance: 0,
           lastProfitClaim: null,
           referralCode: referralCode,
           dailyProfitClaims: 0,
+          claimsAtLastWithdrawal: 0,
+          teamTotalDeposit: 0,
         };
         
         if (values.referralCode) {

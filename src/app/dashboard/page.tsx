@@ -11,13 +11,9 @@ import {
 import { Button } from '@/components/ui/button';
 import {
   DollarSign,
-  TrendingUp,
   Users,
-  Wallet,
   ArrowLeft,
   Briefcase,
-  Activity,
-  Copy,
   ArrowUpRight,
   ArrowDownRight,
   Plus,
@@ -29,11 +25,6 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/firebase';
 import { format } from 'date-fns';
-import {
-  LineChart,
-  Line,
-  ResponsiveContainer,
-} from "recharts"
 import { UserDataProvider, useUserData } from './_components/user-data-provider';
 import type { Transaction } from '@/lib/placeholder-data';
 import { AdminDataProvider } from './admin/_components/admin-data-provider';
@@ -42,31 +33,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 
 const ADMIN_UID = "eQwg5buDT7b0dtU391R8LZXBtjs1";
-
-
-const MiniChart = ({ data }: { data: any[] }) => (
-    <div className="absolute bottom-0 left-0 right-0 h-1/2 opacity-20">
-        <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 5, right: 0, left: 0, bottom: 5 }}>
-                <defs>
-                    <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.5}/>
-                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                    </linearGradient>
-                </defs>
-                <Line
-                    type="monotone"
-                    dataKey="value"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2}
-                    dot={false}
-                    fill="url(#chartGradient)"
-                />
-            </LineChart>
-        </ResponsiveContainer>
-    </div>
-);
-
 
 function DashboardContent() {
   const { user } = useUser();
@@ -80,14 +46,6 @@ function DashboardContent() {
   const totalInvested = investmentsData?.reduce((sum, investment) => sum + (investment.amount || 0), 0) || 0;
   const totalProfit = transactionsData?.filter(t => t.type === 'Profit' && t.status === 'Completed').reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
   const referralEarnings = transactionsData?.filter(t => t.type === 'Referral Bonus' && t.status === 'Completed').reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
-
-  const mockChartData = [
-      { name: 'Jan', value: 120 },
-      { name: 'Feb', value: 150 },
-      { name: 'Mar', value: 130 },
-      { name: 'Apr', value: 180 },
-      { name: 'May', value: 210 },
-  ];
 
   const TransactionIcon = ({ type }: { type: Transaction['type'] }) => {
     switch (type) {
@@ -232,18 +190,14 @@ function DashboardContent() {
                   <CardDescription>إجمالي الربح</CardDescription>
                   <CardTitle className="text-2xl">${totalProfit.toFixed(2)}</CardTitle>
               </CardHeader>
-              <CardContent className="h-20">
-                    <MiniChart data={mockChartData} />
-              </CardContent>
+              <CardContent className="h-10" />
           </Card>
             <Card className="card-glass relative overflow-hidden">
               <CardHeader className="pb-2">
                   <CardDescription>إجمالي المستثمر</CardDescription>
                   <CardTitle className="text-2xl">${totalInvested.toFixed(2)}</CardTitle>
               </CardHeader>
-              <CardContent className="h-20">
-                  <MiniChart data={mockChartData} />
-              </CardContent>
+              <CardContent className="h-10" />
           </Card>
       </div>
 
