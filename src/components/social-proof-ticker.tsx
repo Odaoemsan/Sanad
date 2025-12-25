@@ -16,18 +16,18 @@ type NotificationItem = {
 
 // Create a list of mock notifications. We will cycle through these.
 const mockNotifications: Omit<NotificationItem, 'id'>[] = [
-    { username: 'Ali**', action: 'إيداع', amount: 150, type: 'deposit' },
-    { username: 'Fatima**', action: 'سحب', amount: 85, type: 'withdrawal' },
-    { username: 'Mohammed**', action: 'ربح مكافأة', amount: 10, type: 'reward' },
-    { username: 'Hassan**', action: 'إيداع', amount: 300, type: 'deposit' },
-    { username: 'Zainab**', action: 'سحب', amount: 120, type: 'withdrawal' },
-    { username: 'Omar**', action: 'إيداع', amount: 50, type: 'deposit' },
-    { username: 'Nour**', action: 'سحب', amount: 200, type: 'withdrawal' },
-    { username: 'Khaled**', action: 'ربح مهمة', amount: 5, type: 'reward' },
-    { username: 'Sara**', action: 'إيداع', amount: 75, type: 'deposit' },
-    { username: 'Youssef**', action: 'سحب', amount: 90, type: 'withdrawal' },
-    { username: 'Aisha**', action: 'إيداع', amount: 500, type: 'deposit' },
-    { username: 'Ibrahim**', action: 'ربح إحالة', amount: 15, type: 'reward' },
+    { username: 'Ali', action: 'إيداع', amount: 150, type: 'deposit' },
+    { username: 'Fatima', action: 'سحب', amount: 85, type: 'withdrawal' },
+    { username: 'Mohammed', action: 'ربح مكافأة', amount: 10, type: 'reward' },
+    { username: 'Hassan', action: 'إيداع', amount: 300, type: 'deposit' },
+    { username: 'Zainab', action: 'سحب', amount: 120, type: 'withdrawal' },
+    { username: 'Omar', action: 'إيداع', amount: 50, type: 'deposit' },
+    { username: 'Nour', action: 'سحب', amount: 200, type: 'withdrawal' },
+    { username: 'Khaled', action: 'ربح مهمة', amount: 5, type: 'reward' },
+    { username: 'Sara', action: 'إيداع', amount: 75, type: 'deposit' },
+    { username: 'Youssef', action: 'سحب', amount: 90, type: 'withdrawal' },
+    { username: 'Aisha', action: 'إيداع', amount: 500, type: 'deposit' },
+    { username: 'Ibrahim', action: 'ربح إحالة', amount: 15, type: 'reward' },
 ];
 
 const NotificationIcon = ({ type }: { type: NotificationItem['type'] }) => {
@@ -41,6 +41,11 @@ const NotificationIcon = ({ type }: { type: NotificationItem['type'] }) => {
         default:
             return <TrendingUp className="h-5 w-5 text-gray-500" />;
     }
+}
+
+const formatUsername = (name: string) => {
+    if (!name) return '';
+    return `${name.charAt(0)}**`;
 }
 
 export function SocialProofTicker() {
@@ -85,7 +90,7 @@ export function SocialProofTicker() {
                                 </div>
                                 <div className="flex-1 text-sm">
                                     <p>
-                                        <span className="font-bold">{item.username}</span>
+                                        <span className="font-bold">{formatUsername(item.username)}</span>
                                         {' قام بعملية '}
                                         <span className={cn(
                                             'font-semibold',
