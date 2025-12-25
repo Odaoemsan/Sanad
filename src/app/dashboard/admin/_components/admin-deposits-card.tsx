@@ -16,15 +16,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useDatabase, useDatabaseList, useMemoFirebase } from "@/firebase";
+import { useDatabase } from "@/firebase";
 import { ref, update, get, push, serverTimestamp } from 'firebase/database';
-import type { Transaction, UserProfile } from "@/lib/placeholder-data";
+import type { UserProfile } from "@/lib/placeholder-data";
 import { Button } from "@/components/ui/button";
 import { Check, X, Inbox, Activity } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useAdminData } from './admin-data-provider';
+import type { Transaction } from "@/lib/placeholder-data";
 
 const L1_COMMISSION_RATE = 0.015; // 1.5%
 const L2_COMMISSION_RATE = 0.01;  // 1%
@@ -33,17 +35,14 @@ export function AdminDepositsCard() {
   const database = useDatabase();
   const { toast } = useToast();
   
-  const allTransactionsRef = useMemoFirebase(() => database ? ref(database, 'transactions') : null, [database]);
-  const allUsersRef = useMemoFirebase(() => database ? ref(database, 'users') : null, [database]);
-
-  const { data: allTransactions, isLoading: isLoadingTxs, error } = useDatabaseList<Transaction>(allTransactionsRef);
-  const { data: allUsers, isLoading: isLoadingUsers } = useDatabaseList<UserProfile>(allUsersRef);
+  const { 
+    allTransactions, 
+    allUsers, 
+    usersMap,
+    isLoading,
+    error,
+  } = useAdminData();
   
-  const usersMap = useMemo(() => {
-      if (!allUsers) return new Map<string, string>();
-      return new Map(allUsers.map(user => [user.id, user.username]));
-  }, [allUsers]);
-
 
  const handleTransaction = async (transaction: Transaction, newStatus: 'Completed' | 'Failed') => {
     if (!database || !transaction.id || !transaction.userProfileId) {
@@ -145,7 +144,7 @@ export function AdminDepositsCard() {
     }
   };
   
-  const pageIsLoading = isLoadingTxs || isLoadingUsers || !database;
+  const pageIsLoading = isLoading || !database;
 
   const depositHistory = useMemo(() => {
     return allTransactions

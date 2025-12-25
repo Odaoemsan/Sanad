@@ -1,24 +1,19 @@
 'use client';
-import { useDatabase, useDatabaseList, useMemoFirebase } from "@/firebase";
-import { ref } from 'firebase/database';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import type { UserProfile } from "@/lib/placeholder-data";
 import { Users, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAdminData } from "./admin-data-provider";
 
 
 export function AdminUsersStatsCard() {
-    const database = useDatabase();
-    const usersRef = useMemoFirebase(() => database ? ref(database, 'users') : null, [database]);
-    const { data: users, isLoading } = useDatabaseList<UserProfile>(usersRef);
+    const { allUsers: users, isLoading } = useAdminData();
 
     return (
         <Card>

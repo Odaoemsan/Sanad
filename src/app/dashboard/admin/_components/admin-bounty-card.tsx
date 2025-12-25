@@ -42,11 +42,11 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { useDatabase, useDatabaseList, useMemoFirebase } from '@/firebase';
+import { useDatabase } from '@/firebase';
 import { ref, set, push, remove, serverTimestamp } from 'firebase/database';
 import type { Bounty } from '@/lib/placeholder-data';
 import { PlusCircle, Edit, Trash2, Gift } from 'lucide-react';
-import { format } from 'date-fns';
+import { useAdminData } from './admin-data-provider';
 
 const initialBountyState: Omit<Bounty, 'id' | 'createdAt'> = {
   title: '',
@@ -60,9 +60,7 @@ const initialBountyState: Omit<Bounty, 'id' | 'createdAt'> = {
 export function AdminBountyCard() {
   const database = useDatabase();
   const { toast } = useToast();
-
-  const bountiesRef = useMemoFirebase(() => database ? ref(database, 'bounties') : null, [database]);
-  const { data: bounties, isLoading } = useDatabaseList<Bounty>(bountiesRef);
+  const { allBounties: bounties, isLoading } = useAdminData();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentBounty, setCurrentBounty] = useState<Partial<Bounty> | null>(null);

@@ -5,8 +5,31 @@ import { Shield, AlertTriangle, Users, ArrowRight } from 'lucide-react';
 import { AdminUsersPage } from "../_components/admin-users-page";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { AdminDataProvider } from "../_components/admin-data-provider";
 
 const ADMIN_UID = "eQwg5buDT7b0dtU391R8LZXBtjs1";
+
+function AdminUsersMgmtContent() {
+    return (
+        <div className="flex min-h-screen w-full flex-col">
+             <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+                 <div className="flex items-center gap-4">
+                     <Button variant="outline" size="icon" className="h-7 w-7" asChild>
+                        <Link href="/dashboard/admin">
+                            <ArrowRight className="h-4 w-4" />
+                            <span className="sr-only">العودة إلى لوحة التحكم</span>
+                        </Link>
+                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Users className="h-8 w-8 text-primary" />
+                        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">إدارة المستخدمين</h1>
+                    </div>
+                </div>
+                <AdminUsersPage />
+            </main>
+        </div>
+    )
+}
 
 export default function AdminUsersMgmtPage() {
     const { user, isUserLoading } = useUser();
@@ -31,22 +54,8 @@ export default function AdminUsersMgmtPage() {
     }
 
     return (
-        <div className="flex min-h-screen w-full flex-col">
-             <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-                 <div className="flex items-center gap-4">
-                     <Button variant="outline" size="icon" className="h-7 w-7" asChild>
-                        <Link href="/dashboard/admin">
-                            <ArrowRight className="h-4 w-4" />
-                            <span className="sr-only">العودة إلى لوحة التحكم</span>
-                        </Link>
-                    </Button>
-                    <div className="flex items-center gap-2">
-                        <Users className="h-8 w-8 text-primary" />
-                        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">إدارة المستخدمين</h1>
-                    </div>
-                </div>
-                <AdminUsersPage />
-            </main>
-        </div>
+       <AdminDataProvider>
+           <AdminUsersMgmtContent />
+       </AdminDataProvider>
     );
 }

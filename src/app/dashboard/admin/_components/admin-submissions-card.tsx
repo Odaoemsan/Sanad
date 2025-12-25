@@ -16,28 +16,27 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useDatabase, useDatabaseList, useMemoFirebase } from "@/firebase";
+import { useDatabase } from "@/firebase";
 import { ref, update, get, push, serverTimestamp } from 'firebase/database';
-import type { BountySubmission, Bounty, UserProfile } from "@/lib/placeholder-data";
+import type { Bounty, UserProfile } from "@/lib/placeholder-data";
 import { Button } from "@/components/ui/button";
-import { Check, X, Eye, Activity, Inbox, Link as LinkIcon } from "lucide-react";
+import { Check, X, Eye, Activity, Inbox } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useAdminData } from './admin-data-provider';
+import type { BountySubmission } from '@/lib/placeholder-data';
 
 export function AdminSubmissionsCard() {
   const database = useDatabase();
   const { toast } = useToast();
   
-  const submissionsRef = useMemoFirebase(() => database ? ref(database, 'bounty_submissions') : null, [database]);
-  const allUsersRef = useMemoFirebase(() => database ? ref(database, 'users') : null, [database]);
+  const { 
+    allSubmissions: submissions, 
+    usersMap, 
+    isLoading, 
+    error 
+  } = useAdminData();
 
-  const { data: submissions, isLoading: isLoadingSubmissions, error } = useDatabaseList<BountySubmission>(submissionsRef);
-  const { data: allUsers, isLoading: isLoadingUsers } = useDatabaseList<UserProfile>(allUsersRef);
-
-  const usersMap = useMemo(() => {
-      if (!allUsers) return new Map<string, string>();
-      return new Map(allUsers.map(user => [user.id, user.username]));
-  }, [allUsers]);
 
   const pendingSubmissions = useMemo(() => {
       return submissions?.filter(s => s.status === 'Pending') || [];
@@ -99,7 +98,7 @@ export function AdminSubmissionsCard() {
     }
   };
   
-  const pageIsLoading = isLoadingSubmissions || isLoadingUsers;
+  const pageIsLoading = isLoading;
 
   return (
     <Card>

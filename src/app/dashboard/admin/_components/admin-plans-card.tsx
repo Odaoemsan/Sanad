@@ -36,7 +36,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { useDatabase, useDatabaseList, useMemoFirebase } from "@/firebase";
+import { useDatabase } from "@/firebase";
 import { ref, set, push, remove } from 'firebase/database';
 import type { InvestmentPlan } from "@/lib/placeholder-data";
 import { Button } from "@/components/ui/button";
@@ -46,6 +46,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { PlusCircle, Edit, Trash2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { useAdminData } from "./admin-data-provider";
 
 const initialPlanState: Omit<InvestmentPlan, 'id'> = {
   name: '',
@@ -61,8 +62,7 @@ export function AdminPlansCard() {
   const database = useDatabase();
   const { toast } = useToast();
 
-  const plansRef = useMemoFirebase(() => database ? ref(database, 'investment_plans') : null, [database]);
-  const { data: plans, isLoading } = useDatabaseList<InvestmentPlan>(plansRef);
+  const { allPlans: plans, isLoading } = useAdminData();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentPlan, setCurrentPlan] = useState<Partial<InvestmentPlan> | null>(null);

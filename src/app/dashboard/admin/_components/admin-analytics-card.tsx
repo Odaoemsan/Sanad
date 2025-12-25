@@ -1,8 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useDatabase, useDatabaseList, useMemoFirebase } from "@/firebase";
-import { ref } from 'firebase/database';
+import { useAdminData } from './admin-data-provider';
 import {
   Card,
   CardContent,
@@ -11,23 +10,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Transaction, Investment, InvestmentPlan, UserProfile } from "@/lib/placeholder-data";
-import { DollarSign, TrendingDown, Activity, BarChart2 } from "lucide-react";
+import { DollarSign, TrendingDown, BarChart2 } from "lucide-react";
 import { cn } from '@/lib/utils';
 
 export function AdminAnalyticsCard() {
-    const database = useDatabase();
-    
-    // Fetch all necessary data
-    const allTransactionsRef = useMemoFirebase(() => database ? ref(database, 'transactions') : null, [database]);
-    const allUsersRef = useMemoFirebase(() => database ? ref(database, 'users') : null, [database]);
-    const allPlansRef = useMemoFirebase(() => database ? ref(database, 'investment_plans') : null, [database]);
-
-    const { data: transactions, isLoading: isLoadingTxs } = useDatabaseList<Transaction>(allTransactionsRef);
-    const { data: users, isLoading: isLoadingUsers } = useDatabaseList<UserProfile>(allUsersRef);
-    const { data: plans, isLoading: isLoadingPlans } = useDatabaseList<InvestmentPlan>(allPlansRef);
-
-    const isLoading = isLoadingTxs || isLoadingUsers || isLoadingPlans;
+    const { 
+        allTransactions: transactions,
+        allUsers: users,
+        allPlans: plans,
+        isLoading
+    } = useAdminData();
     
     const analytics = useMemo(() => {
         if (!transactions || !users || !plans) {

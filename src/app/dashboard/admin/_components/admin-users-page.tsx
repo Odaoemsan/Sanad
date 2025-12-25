@@ -15,7 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useDatabase, useDatabaseList, useMemoFirebase } from "@/firebase";
+import { useDatabase } from "@/firebase";
 import { ref, update } from 'firebase/database';
 import type { UserProfile } from "@/lib/placeholder-data";
 import { Button } from "@/components/ui/button";
@@ -25,14 +25,14 @@ import { sendPasswordResetEmail } from "firebase/auth";
 import { useAuth } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { useAdminData } from "./admin-data-provider";
 
 export function AdminUsersPage() {
   const database = useDatabase();
   const auth = useAuth();
   const { toast } = useToast();
-
-  const usersRef = useMemoFirebase(() => database ? ref(database, 'users') : null, [database]);
-  const { data: users, isLoading } = useDatabaseList<UserProfile>(usersRef);
+  
+  const { allUsers: users, isLoading } = useAdminData();
 
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [newBalance, setNewBalance] = useState<number>(0);

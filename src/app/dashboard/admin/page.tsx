@@ -11,31 +11,12 @@ import { AdminUsersStatsCard } from "./_components/admin-users-stats-card";
 import { AdminAnalyticsCard } from "./_components/admin-analytics-card";
 import { AdminBountyCard } from "./_components/admin-bounty-card";
 import { AdminSubmissionsCard } from "./_components/admin-submissions-card";
+import { AdminDataProvider } from "./_components/admin-data-provider";
 
 const ADMIN_UID = "eQwg5buDT7b0dtU391R8LZXBtjs1";
 
-export default function AdminPage() {
-    const { user, isUserLoading } = useUser();
 
-    if (isUserLoading) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)]">
-                <Shield className="w-16 h-16 animate-pulse text-primary mb-4" />
-                <p className="text-muted-foreground">جاري التحقق من الصلاحيات...</p>
-            </div>
-        )
-    }
-
-    if (user?.uid !== ADMIN_UID) {
-        return (
-            <div className="flex flex-col items-center justify-center h-full p-10 text-center">
-                <AlertTriangle className="w-16 h-16 text-destructive mb-4" />
-                <h1 className="text-2xl font-bold">غير مصرح لك بالدخول</h1>
-                <p className="text-muted-foreground mt-2">هذه الصفحة مخصصة للأدمن فقط.</p>
-            </div>
-        )
-    }
-
+function AdminDashboard() {
     return (
         <div className="flex min-h-screen w-full flex-col">
             <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
@@ -65,5 +46,34 @@ export default function AdminPage() {
 
             </main>
         </div>
+    )
+}
+
+export default function AdminPage() {
+    const { user, isUserLoading } = useUser();
+
+    if (isUserLoading) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)]">
+                <Shield className="w-16 h-16 animate-pulse text-primary mb-4" />
+                <p className="text-muted-foreground">جاري التحقق من الصلاحيات...</p>
+            </div>
+        )
+    }
+
+    if (user?.uid !== ADMIN_UID) {
+        return (
+            <div className="flex flex-col items-center justify-center h-full p-10 text-center">
+                <AlertTriangle className="w-16 h-16 text-destructive mb-4" />
+                <h1 className="text-2xl font-bold">غير مصرح لك بالدخول</h1>
+                <p className="text-muted-foreground mt-2">هذه الصفحة مخصصة للأدمن فقط.</p>
+            </div>
+        )
+    }
+
+    return (
+        <AdminDataProvider>
+            <AdminDashboard />
+        </AdminDataProvider>
     );
 }
