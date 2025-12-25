@@ -27,11 +27,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { useUser, useDatabase, useDatabaseObject, useDatabaseList, useMemoFirebase } from '@/firebase';
-import { ref, query, orderByChild, equalTo } from 'firebase/database';
-import type { Transaction, UserProfile, Investment, Referral } from '@/lib/placeholder-data';
+import { useUser } from '@/firebase';
 import { format } from 'date-fns';
-import { useToast } from '@/hooks/use-toast';
 import {
   LineChart,
   Line,
@@ -44,6 +41,9 @@ import { AdminAnnouncementsCard } from "./admin/_components/admin-announcements-
 import { AdminSettingsCard } from "./admin/_components/admin-settings-card";
 import { AdminUsersStatsCard } from "./admin/_components/admin-users-stats-card";
 import { AdminAnalyticsCard } from './admin/_components/admin-analytics-card';
+import { UserDataProvider, useUserData } from './_components/user-data-provider';
+import type { Transaction } from '@/lib/placeholder-data';
+
 
 const ADMIN_UID = "eQwg5buDT7b0dtU391R8LZXBtjs1";
 
@@ -72,32 +72,15 @@ const MiniChart = ({ data }: { data: any[] }) => (
 );
 
 
-export default function DashboardPage() {
-  const { user, isUserLoading: isAuthLoading } = useUser();
-  const database = useDatabase();
-  const { toast } = useToast();
+function DashboardContent() {
+  const { user } = useUser();
+  const { 
+      userProfile, 
+      transactionsData, 
+      investmentsData, 
+      isLoading 
+  } = useUserData();
 
-  const userProfileRef = useMemoFirebase(() => {
-    if (!database || !user) return null;
-    return ref(database, `users/${user.uid}`);
-  }, [database, user]);
-
-  const transactionsRef = useMemoFirebase(() => {
-    if (!user || !database) return null;
-    return query(ref(database, 'transactions'), orderByChild('userProfileId'), equalTo(user.uid));
-  }, [user, database]);
-  
-  const investmentsRef = useMemoFirebase(() => {
-    if (!user || !database) return null;
-    return ref(database, `users/${user.uid}/investments`);
-  }, [user, database]);
-
-  const { data: userProfile, isLoading: isProfileLoading } = useDatabaseObject<UserProfile>(userProfileRef);
-  const { data: transactionsData, isLoading: areTransactionsLoading } = useDatabaseList<Transaction>(transactionsRef);
-  const { data: investmentsData, isLoading: areInvestmentsLoading } = useDatabaseList<Investment>(investmentsRef);
-
-  const isLoading = isAuthLoading || isProfileLoading || areTransactionsLoading || areInvestmentsLoading;
-  
   const totalInvested = investmentsData?.reduce((sum, investment) => sum + (investment.amount || 0), 0) || 0;
   const totalProfit = transactionsData?.filter(t => t.type === 'Profit' && t.status === 'Completed').reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
   const referralEarnings = transactionsData?.filter(t => t.type === 'Referral Bonus' && t.status === 'Completed').reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
@@ -275,4 +258,12 @@ export default function DashboardPage() {
       </div>
     </main>
   );
+}
+
+export default function DashboardPage() {
+    return (
+        <UserDataProvider>
+            <DashboardContent />
+        </UserDataProvider>
+    )
 }
