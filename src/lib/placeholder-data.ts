@@ -34,11 +34,10 @@ export type Transaction = {
   id: string;
   type: 'Deposit' | 'Withdrawal' | 'Profit' | 'Referral Bonus' | 'Investment' | 'BalanceAdjustment' | 'Bounty Reward';
   amount: number;
-  transactionDate: string; // ISO String
+  transactionDate: string; // ISO String. Equivalent to createdAt
   status: 'Completed' | 'Pending' | 'Failed';
-  paymentGateway?: string;
-  userProfileId: string; // Required for all transactions
-  username?: string; // For easier display in admin panel
+  userProfileId: string; // The UID of the user.
+  username?: string; // Denormalized for easier display. Should not be source of truth.
   investmentId?: string;
   transactionId?: string; // For deposit/withdrawal verification
   withdrawAddress?: string; // For withdrawal
@@ -68,9 +67,9 @@ export type BountySubmission = {
     id: string;
     bountyId: string;
     bountyTitle: string;
-    userId: string;
-    username: string;
+    userId: string; // The UID of the user.
     status: 'Pending' | 'Approved' | 'Rejected';
     submissionData: string; // Link or Data URI for image
-    submittedAt: string; // ISO String
+    submittedAt: string; // ISO String. Equivalent to createdAt
+    username?: string; // Denormalized for display
 }

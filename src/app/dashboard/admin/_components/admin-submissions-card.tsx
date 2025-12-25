@@ -20,28 +20,34 @@ import { useDatabase, useDatabaseList, useMemoFirebase } from "@/firebase";
 import { ref, update, get, push } from 'firebase/database';
 import type { BountySubmission, Bounty, UserProfile } from "@/lib/placeholder-data";
 import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
 import { Check, X, Eye, Activity, Inbox, Link as LinkIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
-import Link from 'next/link';
-
 
 export function AdminSubmissionsCard() {
   const database = useDatabase();
   const { toast } = useToast();
   
   const submissionsRef = useMemoFirebase(() => database ? ref(database, 'bounty_submissions') : null, [database]);
+  const allUsersRef = useMemoFirebase(() => database ? ref(database, 'users') : null, [database]);
 
-  const { data: submissions, isLoading, error } = useDatabaseList<BountySubmission>(submissionsRef);
-  
+  const { data: submissions, isLoading: isLoadingSubmissions, error } = useDatabaseList<BountySubmission>(submissionsRef);
+  const { data: allUsers, isLoading: isLoadingUsers } = useDatabaseList<UserProfile>(allUsersRef);
+
+  const usersMap = useMemo(() => {
+      if (!allUsers) return new Map<string, string>();
+      return new Map(allUsers.map(user => [user.id, user.username]));
+  }, [allUsers]);
+
   const pendingSubmissions = useMemo(() => {
       return submissions?.filter(s => s.status === 'Pending') || [];
   }, [submissions]);
 
   const handleSubmission = async (submission: BountySubmission, newStatus: 'Approved' | 'Rejected') => {
-    if (!database) return;
+    if (!database || !submission.userId) {
+        toast({ title: 'خطأ', description: 'بيانات التقديم غير كاملة.', variant: 'destructive'});
+        return;
+    }
 
     try {
         const updates: { [key: string]: any } = {};
@@ -55,7 +61,12 @@ export function AdminSubmissionsCard() {
 
             const userRef = ref(database, `users/${submission.userId}`);
             const userSnap = await get(userRef);
-            if (!userSnap.exists()) throw new Error("User not found");
+            if (!userSnap.exists()) {
+                toast({ title: 'مستخدم غير موجود', description: `لا يمكن إضافة المكافأة لأن المستخدم صاحب المعرف ${submission.userId} غير موجود.`, variant: 'destructive'});
+                updates[`bounty_submissions/${submission.id}/status`] = 'Rejected';
+                await update(ref(database), updates);
+                return;
+            }
             const userProfile: UserProfile = userSnap.val();
 
             // 1. Add reward to user's balance
@@ -66,7 +77,6 @@ export function AdminSubmissionsCard() {
             updates[`transactions/${transactionRef.key}`] = {
                 id: transactionRef.key,
                 userProfileId: submission.userId,
-                username: submission.username,
                 type: 'Bounty Reward',
                 amount: bounty.reward,
                 status: 'Completed',
@@ -87,6 +97,8 @@ export function AdminSubmissionsCard() {
         toast({ title: "خطأ", description: error.message || "فشل تحديث المهمة.", variant: "destructive" });
     }
   };
+  
+  const pageIsLoading = isLoadingSubmissions || isLoadingUsers;
 
   return (
     <Card>
@@ -95,7 +107,7 @@ export function AdminSubmissionsCard() {
         <CardDescription>مراجعة و قبول/رفض تقديمات المهام من المستخدمين.</CardDescription>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
+        {pageIsLoading ? (
            <div className="flex items-center justify-center p-10">
               <Activity className="h-10 w-10 animate-pulse text-primary" />
           </div>
@@ -115,7 +127,7 @@ export function AdminSubmissionsCard() {
               <TableBody>
                 {pendingSubmissions.map((sub) => (
                   <TableRow key={sub.id}>
-                    <TableCell className="font-medium text-xs">{sub.username}</TableCell>
+                    <TableCell className="font-medium text-xs">{usersMap.get(sub.userId) || `(مستخدم غير موجود)`}</TableCell>
                     <TableCell className="font-medium text-xs">{sub.bountyTitle}</TableCell>
                     <TableCell>
                       <Button

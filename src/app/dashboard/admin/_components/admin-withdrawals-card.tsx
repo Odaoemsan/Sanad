@@ -17,10 +17,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useDatabase, useDatabaseList, useMemoFirebase } from "@/firebase";
-import { ref, update, get, query, orderByChild, equalTo } from 'firebase/database';
+import { ref, update, get } from 'firebase/database';
 import type { Transaction, UserProfile } from "@/lib/placeholder-data";
 import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
 import { Check, X, Activity, Inbox } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -31,12 +30,17 @@ export function AdminWithdrawalsCard() {
   const database = useDatabase();
   const { toast } = useToast();
   
-  const allTransactionsRef = useMemoFirebase(() => {
-    if (!database) return null;
-    return ref(database, 'transactions');
-  }, [database]);
+  const allTransactionsRef = useMemoFirebase(() => database ? ref(database, 'transactions') : null, [database]);
+  const allUsersRef = useMemoFirebase(() => database ? ref(database, 'users') : null, [database]);
 
-  const { data: allTransactions, isLoading, error } = useDatabaseList<Transaction>(allTransactionsRef);
+  const { data: allTransactions, isLoading: isLoadingTxs, error } = useDatabaseList<Transaction>(allTransactionsRef);
+  const { data: allUsers, isLoading: isLoadingUsers } = useDatabaseList<UserProfile>(allUsersRef);
+  
+  const usersMap = useMemo(() => {
+      if (!allUsers) return new Map<string, string>();
+      return new Map(allUsers.map(user => [user.id, user.username]));
+  }, [allUsers]);
+
 
   const handleTransaction = async (transaction: Transaction, newStatus: 'Completed' | 'Failed') => {
     if (!database || !transaction.userProfileId || !transaction.id) return;
@@ -44,17 +48,18 @@ export function AdminWithdrawalsCard() {
     try {
         const updates: { [key: string]: any } = {};
 
-        // If a withdrawal is failed, we need to refund the user's balance.
         if (newStatus === 'Failed' && transaction.type === 'Withdrawal') {
             const userRef = ref(database, `users/${transaction.userProfileId}`);
             const userSnap = await get(userRef);
-            if (!userSnap.exists()) throw new Error("User not found");
-            const userProfile: UserProfile = userSnap.val();
-            const newBalance = (userProfile.balance || 0) + transaction.amount;
-            updates[`users/${transaction.userProfileId}/balance`] = newBalance;
+            if (userSnap.exists()) {
+                 const userProfile: UserProfile = userSnap.val();
+                 const newBalance = (userProfile.balance || 0) + transaction.amount;
+                 updates[`users/${transaction.userProfileId}/balance`] = newBalance;
+            } else {
+                toast({title: "تحذير", description: `لم يتم العثور على المستخدم صاحب الطلب لإعادة الرصيد.`, variant: 'destructive'});
+            }
         }
 
-        // Always update the transaction status.
         updates[`transactions/${transaction.id}/status`] = newStatus;
         
         await update(ref(database), updates);
@@ -70,7 +75,7 @@ export function AdminWithdrawalsCard() {
     }
   };
   
-  const pageIsLoading = isLoading || !database;
+  const pageIsLoading = isLoadingTxs || isLoadingUsers || !database;
 
   const withdrawalHistory = useMemo(() => {
     return allTransactions
@@ -107,7 +112,7 @@ export function AdminWithdrawalsCard() {
               <TableBody>
                 {withdrawalHistory.map((tx) => (
                   <TableRow key={tx.id}>
-                    <TableCell className="font-medium text-xs">{tx.username || 'غير متوفر'}</TableCell>
+                    <TableCell className="font-medium text-xs">{usersMap.get(tx.userProfileId) || '(مستخدم غير موجود)'}</TableCell>
                     <TableCell>${tx.amount.toFixed(2)}</TableCell>
                     <TableCell className="font-mono text-xs max-w-[100px] truncate" title={tx.withdrawAddress}>
                         {tx.withdrawAddress}

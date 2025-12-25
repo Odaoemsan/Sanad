@@ -17,32 +17,34 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useDatabase, useDatabaseList, useMemoFirebase } from "@/firebase";
-import { ref, update, get, query, orderByChild, equalTo, push, set } from 'firebase/database';
-import type { Transaction, UserProfile, Referral } from "@/lib/placeholder-data";
+import { ref, update, get, push } from 'firebase/database';
+import type { Transaction, UserProfile } from "@/lib/placeholder-data";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { Check, X, Eye, Activity, Inbox } from "lucide-react";
+import { Check, X, Inbox, Activity } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
-
 const L1_COMMISSION_RATE = 0.015; // 1.5%
 const L2_COMMISSION_RATE = 0.01;  // 1%
-
 
 export function AdminDepositsCard() {
   const database = useDatabase();
   const { toast } = useToast();
   
-  const allTransactionsRef = useMemoFirebase(() => {
-    if (!database) return null;
-    return ref(database, 'transactions');
-  }, [database]);
+  const allTransactionsRef = useMemoFirebase(() => database ? ref(database, 'transactions') : null, [database]);
+  const allUsersRef = useMemoFirebase(() => database ? ref(database, 'users') : null, [database]);
 
-  const { data: allTransactions, isLoading, error } = useDatabaseList<Transaction>(allTransactionsRef);
+  const { data: allTransactions, isLoading: isLoadingTxs, error } = useDatabaseList<Transaction>(allTransactionsRef);
+  const { data: allUsers, isLoading: isLoadingUsers } = useDatabaseList<UserProfile>(allUsersRef);
   
+  const usersMap = useMemo(() => {
+      if (!allUsers) return new Map<string, string>();
+      return new Map(allUsers.map(user => [user.id, user.username]));
+  }, [allUsers]);
+
  const handleTransaction = async (transaction: Transaction, newStatus: 'Completed' | 'Failed') => {
     if (!database || !transaction.id || !transaction.userProfileId) {
         toast({ title: "بيانات ناقصة", description: "المعاملة تفتقد للمعلومات الضرورية.", variant: "destructive" });
@@ -51,16 +53,20 @@ export function AdminDepositsCard() {
 
     try {
         const updates: { [key: string]: any } = {};
-
-        // Always update the transaction status first.
         updates[`transactions/${transaction.id}/status`] = newStatus;
 
-        // If a deposit is approved, we perform several actions.
         if (newStatus === 'Completed') {
             const depositorRef = ref(database, `users/${transaction.userProfileId}`);
             const depositorSnap = await get(depositorRef);
-            if (!depositorSnap.exists()) throw new Error("Depositing user not found");
-            const depositorProfile: UserProfile = depositorSnap.val();
+            if (!depositorSnap.exists()) {
+                 toast({ title: "خطأ فادح", description: `لم يتم العثور على المستخدم صاحب المعرف ${transaction.userProfileId}. قد يكون الحساب قد تم حذفه.`, variant: 'destructive'});
+                 // Optionally, fail the transaction automatically
+                 updates[`transactions/${transaction.id}/status`] = 'Failed';
+                 await update(ref(database), updates);
+                 return;
+            }
+            const depositorProfile: UserProfile = { ...depositorSnap.val(), id: depositorSnap.key };
+
 
             // 1. Add deposit amount to the user's balance.
             const newBalance = (depositorProfile.balance || 0) + transaction.amount;
@@ -73,16 +79,14 @@ export function AdminDepositsCard() {
                 const l1ReferrerSnap = await get(l1ReferrerRef);
                 
                 if (l1ReferrerSnap.exists()) {
-                    const l1ReferrerProfile: UserProfile = l1ReferrerSnap.val();
+                    const l1ReferrerProfile: UserProfile = { ...l1ReferrerSnap.val(), id: l1ReferrerSnap.key };
                     const l1Bonus = transaction.amount * L1_COMMISSION_RATE;
                     updates[`users/${l1ReferrerProfile.id}/balance`] = (l1ReferrerProfile.balance || 0) + l1Bonus;
                     
-                    // Create transaction for L1 bonus
                     const l1BonusTxRef = push(ref(database, `transactions`));
                     updates[`transactions/${l1BonusTxRef.key}`] = {
                         id: l1BonusTxRef.key,
                         userProfileId: l1ReferrerProfile.id,
-                        username: l1ReferrerProfile.username,
                         type: 'Referral Bonus',
                         amount: l1Bonus,
                         status: 'Completed',
@@ -90,7 +94,6 @@ export function AdminDepositsCard() {
                         notes: `Level 1 bonus from ${depositorProfile.username}`
                     };
 
-                     // Create referral record for L1
                     const l1ReferralRecordRef = push(ref(database, `users/${l1ReferrerProfile.id}/referrals`));
                     updates[`users/${l1ReferrerProfile.id}/referrals/${l1ReferralRecordRef.key}`] = {
                         id: l1ReferralRecordRef.key,
@@ -109,16 +112,14 @@ export function AdminDepositsCard() {
                         const l2ReferrerSnap = await get(l2ReferrerRef);
 
                          if (l2ReferrerSnap.exists()) {
-                             const l2ReferrerProfile: UserProfile = l2ReferrerSnap.val();
+                             const l2ReferrerProfile: UserProfile = { ...l2ReferrerSnap.val(), id: l2ReferrerSnap.key };
                              const l2Bonus = transaction.amount * L2_COMMISSION_RATE;
                              updates[`users/${l2ReferrerProfile.id}/balance`] = (l2ReferrerProfile.balance || 0) + l2Bonus;
 
-                             // Create transaction for L2 bonus
                              const l2BonusTxRef = push(ref(database, `transactions`));
                              updates[`transactions/${l2BonusTxRef.key}`] = {
                                 id: l2BonusTxRef.key,
                                 userProfileId: l2ReferrerProfile.id,
-                                username: l2ReferrerProfile.username,
                                 type: 'Referral Bonus',
                                 amount: l2Bonus,
                                 status: 'Completed',
@@ -145,7 +146,7 @@ export function AdminDepositsCard() {
     }
   };
   
-  const pageIsLoading = isLoading || !database;
+  const pageIsLoading = isLoadingTxs || isLoadingUsers || !database;
 
   const depositHistory = useMemo(() => {
     return allTransactions
@@ -182,7 +183,7 @@ export function AdminDepositsCard() {
               <TableBody>
                 {depositHistory.map((tx) => (
                   <TableRow key={tx.id}>
-                    <TableCell className="font-medium text-xs">{tx.username || 'غير متوفر'}</TableCell>
+                    <TableCell className="font-medium text-xs">{usersMap.get(tx.userProfileId) || '(مستخدم غير موجود)'}</TableCell>
                     <TableCell className="font-bold">${tx.amount.toFixed(2)}</TableCell>
                     <TableCell className="font-mono text-xs max-w-[150px] truncate" title={tx.transactionId}>
                       {tx.transactionId || 'N/A'}

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useUser, useDatabase, useDatabaseObject, useDatabaseList, useMemoFirebase } from '@/firebase';
 import { ref, update, push, serverTimestamp, runTransaction, set, query, orderByChild, equalTo } from 'firebase/database';
-import { CheckCircle, Loader, Clock, Zap, TrendingUp, Gift, Paperclip, Link as LinkIcon, Upload, AlertCircle } from 'lucide-react';
+import { CheckCircle, Loader, Clock, Zap, TrendingUp, Gift, Upload, Link as LinkIcon, AlertCircle } from 'lucide-react';
 import type { InvestmentPlan, UserProfile, Investment, Bounty, BountySubmission } from '@/lib/placeholder-data';
 import { addHours, formatDistanceToNowStrict, isBefore, format } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -51,7 +51,6 @@ function DailyProfitClaim() {
 
     useEffect(() => {
         let timer: NodeJS.Timeout | undefined;
-        // Don't run logic until all data is loaded
         if (isLoading) {
             setClaimStatus('loading');
             return;
@@ -154,9 +153,6 @@ function BountySystem() {
     const { toast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const userProfileRef = useMemoFirebase(() => (database && user) ? ref(database, `users/${user.uid}`) : null, [database, user]);
-    const { data: userProfile } = useDatabaseObject<UserProfile>(userProfileRef);
-
     const [submissionData, setSubmissionData] = useState('');
     const [proofFile, setProofFile] = useState<File | null>(null);
     const [isSubmitting, setIsSubmitting] = useState<string | null>(null);
@@ -185,7 +181,7 @@ function BountySystem() {
     });
 
     const handleSubmit = async (bounty: Bounty) => {
-        if (!user || !database || !userProfile) return;
+        if (!user || !database) return;
         
         let finalSubmissionData = submissionData;
         if (bounty.submissionType === 'image') {
@@ -203,7 +199,6 @@ function BountySystem() {
                 bountyId: bounty.id,
                 bountyTitle: bounty.title,
                 userId: user.uid,
-                username: userProfile.username,
                 status: 'Pending',
                 submissionData: finalSubmissionData,
                 submittedAt: new Date().toISOString(),

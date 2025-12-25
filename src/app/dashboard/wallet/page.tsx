@@ -6,18 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Wallet, CreditCard, Copy, Upload } from "lucide-react";
-import { useState, useRef, Suspense } from "react";
+import { Wallet, CreditCard, Copy } from "lucide-react";
+import { useState, Suspense } from "react";
 import { useUser, useDatabase, useDatabaseObject, useMemoFirebase, useAuth, useDatabaseList } from '@/firebase';
 import { ref, push, set, runTransaction as runDBTransaction } from 'firebase/database';
-import type { UserProfile, Investment, Transaction } from "@/lib/placeholder-data";
+import type { UserProfile, Investment } from "@/lib/placeholder-data";
 import { EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSearchParams } from "next/navigation";
 
-
 const MIN_WITHDRAWAL_AMOUNT = 50;
-
 
 function DepositForm() {
     const { user } = useUser();
@@ -27,9 +25,6 @@ function DepositForm() {
     const [amount, setAmount] = useState('');
     const [transactionId, setTransactionId] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-
-    const userProfileRef = useMemoFirebase(() => (database && user) ? ref(database, `users/${user.uid}`) : null, [database, user]);
-    const { data: userProfile } = useDatabaseObject<UserProfile>(userProfileRef);
 
     const depositAddressRef = useMemoFirebase(() => database ? ref(database, 'settings/depositAddress') : null, [database]);
     const { data: depositAddress, isLoading: isLoadingAddress } = useDatabaseObject<string>(depositAddressRef);
@@ -43,7 +38,7 @@ function DepositForm() {
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (!user || !database || !transactionId || !amount || !userProfile) {
+        if (!user || !database || !transactionId || !amount) {
             toast({ title: "بيانات ناقصة", description: "الرجاء ملء جميع الحقول.", variant: "destructive" });
             return;
         }
@@ -61,7 +56,6 @@ function DepositForm() {
             await set(newTransactionRef, {
                 id: newTransactionRef.key,
                 userProfileId: user.uid,
-                username: userProfile.username,
                 type: 'Deposit',
                 amount: depositAmount,
                 status: 'Pending',
@@ -76,7 +70,6 @@ function DepositForm() {
                 className: "bg-green-600 border-green-600 text-white"
             });
             
-            // Reset form
             setAmount('');
             setTransactionId('');
 
@@ -155,7 +148,7 @@ function WithdrawForm() {
     
     const handleWithdraw = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (!user || !auth || !user.email || isSubmitting || !database || !userProfile) return;
+        if (!user || !auth || !user.email || isSubmitting || !database) return;
 
         const form = e.currentTarget;
         const formData = new FormData(form);
@@ -187,19 +180,9 @@ function WithdrawForm() {
             const userRef = ref(database, `users/${user.uid}`);
             
             await runDBTransaction(userRef, (currentData: UserProfile | null) => {
-                if (!currentData) {
-                    // This will abort the transaction
-                    return;
-                }
-
-                if ((currentData.balance || 0) < amount) {
-                    // Abort transaction by throwing an error
-                    throw new Error("رصيد غير كافٍ");
-                }
-                
-                const newBalance = (currentData.balance || 0) - amount;
-                currentData.balance = newBalance;
-                
+                if (!currentData) throw new Error("User profile not found.");
+                if ((currentData.balance || 0) < amount) throw new Error("رصيد غير كافٍ");
+                currentData.balance = (currentData.balance || 0) - amount;
                 return currentData;
             });
             
@@ -207,7 +190,6 @@ function WithdrawForm() {
             await set(newTransactionRef, {
                 id: newTransactionRef.key,
                 userProfileId: user.uid,
-                username: userProfile.username,
                 type: 'Withdrawal',
                 amount: amount,
                 transactionDate: new Date().toISOString(),
