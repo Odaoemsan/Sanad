@@ -44,6 +44,7 @@ export type Transaction = {
   withdrawAddress?: string; // For withdrawal
   notes?: string; // For admin adjustments
   transactionId?: string; // For deposit TxID
+  isHidden?: boolean; // For admin to hide from view
 };
 
 export type Referral = {

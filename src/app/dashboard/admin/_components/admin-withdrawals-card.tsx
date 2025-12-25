@@ -20,7 +20,7 @@ import { useDatabase } from "@/firebase";
 import { ref, update, get } from 'firebase/database';
 import type { UserProfile } from "@/lib/placeholder-data";
 import { Button } from "@/components/ui/button";
-import { Check, X, Activity, Inbox, Copy } from "lucide-react";
+import { Check, X, Activity, Inbox, Copy, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -94,6 +94,16 @@ export function AdminWithdrawalsCard() {
     }
   };
 
+  const handleClearTransaction = async (transactionId: string) => {
+    if (!database) return;
+    try {
+        await update(ref(database, `transactions/${transactionId}`), { isHidden: true });
+        toast({ title: "تم مسح السجل", description: "تم إخفاء السجل من العرض الحالي." });
+    } catch(error) {
+        toast({ title: "خطأ", description: "فشل مسح السجل.", variant: "destructive" });
+    }
+  };
+
   const copyToClipboard = (text: string) => {
     if (!text) return;
     navigator.clipboard.writeText(text);
@@ -107,7 +117,7 @@ export function AdminWithdrawalsCard() {
 
   const withdrawalHistory = useMemo(() => {
     return allTransactions
-        ?.filter(tx => tx.type === 'Withdrawal')
+        ?.filter(tx => tx.type === 'Withdrawal' && !tx.isHidden)
         .sort((a, b) => (typeof b.transactionDate === 'number' ? b.transactionDate : 0) - (typeof a.transactionDate === 'number' ? a.transactionDate : 0)) 
         || [];
   }, [allTransactions]);
@@ -163,47 +173,67 @@ export function AdminWithdrawalsCard() {
                         </Badge>
                       </TableCell>
                     <TableCell>
-                      {tx.status === 'Pending' ? (
-                          <div className="flex items-center gap-2">
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button title="موافقة" size="icon" className="h-8 w-8 bg-green-500 hover:bg-green-600" disabled={processingId === tx.id}><Check /></Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>تأكيد الموافقة على السحب</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            هل أنت متأكد من أنك تريد الموافقة على طلب السحب هذا بمبلغ ${tx.amount.toFixed(2)} إلى العنوان "{tx.withdrawAddress}"؟ هذا الإجراء لا يمكن التراجع عنه.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleTransaction(tx, 'Completed')}>نعم، موافقة</AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
+                      <div className="flex items-center gap-2">
+                        {tx.status === 'Pending' ? (
+                            <>
+                              <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                      <Button title="موافقة" size="icon" className="h-8 w-8 bg-green-500 hover:bg-green-600" disabled={processingId === tx.id}><Check /></Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                          <AlertDialogTitle>تأكيد الموافقة على السحب</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                              هل أنت متأكد من أنك تريد الموافقة على طلب السحب هذا بمبلغ ${tx.amount.toFixed(2)} إلى العنوان "{tx.withdrawAddress}"؟ هذا الإجراء لا يمكن التراجع عنه.
+                                          </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                          <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                          <AlertDialogAction onClick={() => handleTransaction(tx, 'Completed')}>نعم، موافقة</AlertDialogAction>
+                                      </AlertDialogFooter>
+                                  </AlertDialogContent>
+                              </AlertDialog>
 
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button title="رفض" size="icon" className="h-8 w-8 bg-red-500 hover:bg-red-600" disabled={processingId === tx.id}><X /></Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>تأكيد رفض السحب</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            هل أنت متأكد من أنك تريد رفض طلب السحب هذا؟ سيتم إعادة المبلغ إلى رصيد المستخدم.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleTransaction(tx, 'Failed')}>نعم، رفض</AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                      ) : (
-                          <span className="text-xs text-muted-foreground">تمت المعالجة</span>
-                      )}
+                              <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                      <Button title="رفض" size="icon" className="h-8 w-8 bg-red-500 hover:bg-red-600" disabled={processingId === tx.id}><X /></Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                          <AlertDialogTitle>تأكيد رفض السحب</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                              هل أنت متأكد من أنك تريد رفض طلب السحب هذا؟ سيتم إعادة المبلغ إلى رصيد المستخدم.
+                                          </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                          <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                          <AlertDialogAction onClick={() => handleTransaction(tx, 'Failed')}>نعم، رفض</AlertDialogAction>
+                                      </AlertDialogFooter>
+                                  </AlertDialogContent>
+                              </AlertDialog>
+                            </>
+                        ) : (
+                          <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button title="مسح من العرض" size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" disabled={processingId === tx.id}>
+                                    <Trash2 />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                      <AlertDialogTitle>تأكيد المسح</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                          هل أنت متأكد من أنك تريد مسح هذا السجل من العرض؟ ستبقى المعاملة في قاعدة البيانات.
+                                      </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                      <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleClearTransaction(tx.id)}>نعم، مسح</AlertDialogAction>
+                                  </AlertDialogFooter>
+                              </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

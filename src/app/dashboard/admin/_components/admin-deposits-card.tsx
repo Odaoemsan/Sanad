@@ -20,7 +20,7 @@ import { useDatabase } from "@/firebase";
 import { ref, update, get, push, serverTimestamp } from 'firebase/database';
 import type { UserProfile } from "@/lib/placeholder-data";
 import { Button } from "@/components/ui/button";
-import { Check, X, Inbox, Activity } from "lucide-react";
+import { Check, X, Inbox, Activity, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -157,12 +157,22 @@ export function AdminDepositsCard() {
         setProcessingId(null);
     }
   };
+
+  const handleClearTransaction = async (transactionId: string) => {
+    if (!database) return;
+    try {
+        await update(ref(database, `transactions/${transactionId}`), { isHidden: true });
+        toast({ title: "تم مسح السجل", description: "تم إخفاء السجل من العرض الحالي." });
+    } catch(error) {
+        toast({ title: "خطأ", description: "فشل مسح السجل.", variant: "destructive" });
+    }
+  };
   
   const pageIsLoading = isLoading || !database;
 
   const depositHistory = useMemo(() => {
     return allTransactions
-      ?.filter(tx => tx.type === 'Deposit')
+      ?.filter(tx => tx.type === 'Deposit' && !tx.isHidden)
       .sort((a, b) => (typeof b.transactionDate === 'number' ? b.transactionDate : 0) - (typeof a.transactionDate === 'number' ? a.transactionDate : 0)) 
       || [];
   }, [allTransactions]);
@@ -215,8 +225,9 @@ export function AdminDepositsCard() {
                         </Badge>
                       </TableCell>
                     <TableCell>
-                       {tx.status === 'Pending' ? (
-                          <div className="flex items-center gap-2">
+                       <div className="flex items-center gap-2">
+                         {tx.status === 'Pending' ? (
+                          <>
                              <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button title="موافقة" size="icon" className="h-8 w-8 bg-green-500 hover:bg-green-600" disabled={processingId === tx.id}>
@@ -259,10 +270,29 @@ export function AdminDepositsCard() {
                                     </AlertDialogFooter>
                                 </AlertDialogContent>
                             </AlertDialog>
-                          </div>
+                          </>
                         ) : (
-                          <span className="text-xs text-muted-foreground">تمت المعالجة</span>
+                          <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                  <Button title="مسح من العرض" size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" disabled={processingId === tx.id}>
+                                      <Trash2 />
+                                  </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                      <AlertDialogTitle>تأكيد المسح</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                          هل أنت متأكد من أنك تريد مسح هذا السجل من العرض؟ ستبقى المعاملة في قاعدة البيانات.
+                                      </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                      <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleClearTransaction(tx.id)}>نعم، مسح</AlertDialogAction>
+                                  </AlertDialogFooter>
+                              </AlertDialogContent>
+                          </AlertDialog>
                         )}
+                       </div>
                     </TableCell>
                   </TableRow>
                 ))}
