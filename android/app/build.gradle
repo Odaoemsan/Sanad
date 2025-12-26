@@ -2,11 +2,11 @@ apply plugin: 'com.android.application'
 
 android {
     namespace "com.sanad.app"
-    compileSdk 35
+    compileSdk 34
     defaultConfig {
         applicationId "com.sanad.app"
-        minSdk 22
-        targetSdk 35
+        minSdkVersion 22
+        targetSdkVersion 34
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -17,25 +17,19 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
-    lint {
-        abortOnError false
-    }
+}
+
+repositories {
+    google()
+    mavenCentral()
 }
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'com.google.android.material:material:1.12.0'
-    implementation 'androidx.coordinatorlayout:coordinatorlayout:1.2.0'
-    implementation project(':capacitor-android')
+    implementation "com.getcapacitor:capacitor-android:6.0.0"
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
-    implementation 'com.getcapacitor:capacitor-android:8.0.0'
+    implementation project(':capacitor-cordova-android-plugins')
 }
-
-apply from: 'capacitor.build.gradle'
