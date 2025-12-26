@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { DashboardNav, DashboardNavHeader } from '@/components/layout/dashboard-nav';
-import { LogOut } from 'lucide-react';
+import { LogOut, MountainIcon } from 'lucide-react';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter, usePathname } from 'next/navigation';
@@ -44,8 +44,10 @@ export default function DashboardLayout({
 
   if (isUserLoading || !user) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-2xl font-semibold">جار التحميل...</div>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground">
+        <MountainIcon className="h-16 w-16 text-primary animate-pulse" />
+        <h2 className="mt-4 text-2xl font-bold">أهلاً بك في SNAD</h2>
+        <p className="mt-2 text-muted-foreground">لحظات ونكون معك...</p>
       </div>
     );
   }
